@@ -25,15 +25,49 @@ Everything runs **locally** – speech recognition, LLM inference and text-to-sp
 - **Voice in / voice out** – Whisper / faster-whisper speech-to-text with resampling for USB microphones,
   and Piper neural TTS routed to a Bluetooth speaker (auto-detected PipeWire sink).
 - **Runtime CPU/GPU and model switching** – the GUI lets you pick the Ollama model and CPU vs. GPU inference on the fly.
-- **SLAM + Nav2 workflow** – map an area with SLAM Toolbox, save the map, localize with AMCL and navigate to named goals.
+- **One-command robot bring-up** – `scripts/robot_launch.sh` starts SLAM or localization, sets the robot's initial
+  pose, and launches Nav2 and RViz.
 - **Monitoring GUI (Tkinter)** – chat, location list, controls, and live robot sensor plots
   (odometry path, LiDAR polar plot, IMU, battery).
 
 ## Architecture
 
+The system starts in **two steps**. First the robot stack is brought up with `scripts/robot_launch.sh`
+(together with the robot's starting position). Then the assistant (`src/gui.py`, or `src/main.py` for the terminal)
+is started and talks to that running stack.
 
+```mermaid
+flowchart TB
+    subgraph S1["Step 1 — scripts/robot_launch.sh  x y yaw  [--mode slam or localization]"]
+      direction LR
+      L1["Source ROS 2 Jazzy<br/>ROS_DOMAIN_ID=23"] --> L2["SLAM Toolbox<br/>or localization on saved map"]
+      L2 --> L3["Publish /initialpose<br/>x, y, yaw"]
+      L3 --> L4["Nav2 stack"]
+      L4 --> L5["RViz"]
+    end
 
-<!-- ### How it works -->
+    subgraph S2["Step 2 — src/gui.py  (or src/main.py)"]
+      direction LR
+      subgraph Input
+        MIC[Microphone] --> STT[Whisper STT]
+        TXT[Text / GUI chat]
+      end
+      STT --> INT["Intent detector<br/>rule-based"]
+      TXT --> INT
+      INT -- chat --> LLM["Ollama LLM<br/>response generator"]
+      INT -- navigate --> LOC["Location extractor<br/>rules + synonyms + LLM fallback"]
+      LOC --> LM[("locations.yaml")]
+      LOC --> NAV["Robot navigator<br/>Nav2 BasicNavigator"]
+      NAV <--> ROBOT["TurtleBot 4<br/>Nav2 + AMCL + SLAM map"]
+      LLM --> TTS["Piper TTS -> Bluetooth speaker"]
+      NAV --> TTS
+      ROBOT -. "/odom /scan /imu /battery_state" .-> GUI["Monitoring GUI"]
+    end
+
+    S1 ==> S2
+```
+
+### How it works
 
 1. **Input.** The user types in the terminal or GUI, or speaks. For speech, `sounddevice` records from the USB
    microphone at 48 kHz, voice-activity thresholds (4 sensitivity levels) detect when the user stops talking, the
@@ -56,23 +90,7 @@ Everything runs **locally** – speech recognition, LLM inference and text-to-sp
 
 **Threads** (`chat_interface.py`): chat loop, navigation worker, TTS worker (serialises speech), ROS executor, and
 the GUI backend thread. Chatting and speaking stay responsive while the robot is driving.
-```mermaid
-flowchart LR
-    subgraph Input
-      MIC[Microphone] --> STT[Whisper STT]
-      TXT[Text / GUI chat]
-    end
-    STT --> INT[Intent detector<br/>rule-based]
-    TXT --> INT
-    INT -- chat --> LLM[Ollama LLM<br/>response generator]
-    INT -- navigate --> LOC[Location extractor<br/>rules + synonyms + LLM fallback]
-    LOC --> LM[(locations.yaml)]
-    LOC --> NAV[Robot navigator<br/>Nav2 BasicNavigator]
-    NAV <--> ROBOT[TurtleBot 4<br/>Nav2 + AMCL + SLAM map]
-    LLM --> TTS[Piper TTS -> Bluetooth speaker]
-    NAV --> TTS
-    ROBOT -. /odom /scan /imu /battery_state .-> GUI[Monitoring GUI]
-```
+
 **Design choices**
 
 - **Rules first, LLM second.** Navigation commands are safety-relevant, so they use deterministic matching. The LLM
@@ -80,6 +98,105 @@ flowchart LR
 - **Fully local.** Speech recognition, LLM and TTS run on the user's own machine. There are no API keys and no
   audio leaves the machine.
 - **Non-blocking.** Navigation, speech and chat run in separate threads.
+
+## Step 1 — Robot bring-up (`scripts/robot_launch.sh`)
+
+One script starts everything the assistant needs on the robot side. Run it in its own terminal and keep it open.
+
+```bash
+./scripts/robot_launch.sh <x> <y> <yaw_deg> [--mode localization|slam] [map.yaml]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<x> <y>` | Robot's current position on the map, in metres |
+| `<yaw_deg>` | Robot's heading in degrees: `0` = East, `90` = North, `180` = West, `270` = South |
+| `--mode localization` | **Default.** Localize on an existing map (default `maps/robotic_arena.yaml`, or pass another `map.yaml`) |
+| `--mode slam` | Build a new map live with SLAM Toolbox (no saved map needed) |
+| `--x`, `--y`, `--yaw-deg`, `--yaw` | Named-flag alternative (`--yaw` takes radians) |
+
+Examples:
+
+```bash
+./scripts/robot_launch.sh 0 0 0                          # localize at the origin, facing East
+./scripts/robot_launch.sh 1 1 90                         # localize at x=1, y=1, facing North
+./scripts/robot_launch.sh 1.5 -0.3 90 maps/map_1.yaml    # use a different saved map
+./scripts/robot_launch.sh 0 0 0 --mode slam              # map a new area
+```
+
+What it does, in order:
+
+1. Checks that ROS 2 Jazzy is installed and (in localization mode) that the map file exists.
+2. Sources ROS 2 and sets `ROS_DOMAIN_ID=23`.
+3. Launches `turtlebot4_navigation` **SLAM** or **localization** (AMCL on the saved map).
+4. **Localization mode:** converts the yaw to a quaternion and publishes the starting pose on `/initialpose`
+   (retried up to 5 times until AMCL is ready), so the robot is localized without clicking in RViz.
+   The pose you pass must match where the robot is physically standing on the map.
+5. Launches the **Nav2** navigation stack.
+6. Launches **RViz** (`turtlebot4_viz`) for visualisation.
+
+Each service logs to `/tmp/` (`slam.log`, `localization.log`, `nav2.log`, `rviz.log`). Press **Ctrl+C** once to stop
+all services cleanly. In SLAM mode, save the finished map with
+`ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "name: {data: 'maps/my_map'}"`
+(more commands in [`docs/turtlebot4_commands.md`](docs/turtlebot4_commands.md)).
+
+## AI components: LLM, speech-to-text, text-to-speech
+
+No model weights are stored in this repository. Each is downloaded on install or first use.
+
+### Language model (LLM) — Ollama
+
+`src/response_generator.py` runs a local LLM through [Ollama](https://ollama.com). It is used for three things:
+free-form conversation, polite replies when a requested place is not on the map (it lists the known locations),
+and as the fallback in `location_extractor.py` for requests the rules cannot resolve.
+Simple status messages ("Heading to the lab now!", "I've arrived at the lawn!") are templates and do not call the LLM,
+which keeps navigation feedback instant. Each reply sees only the last few conversation turns (just the last one
+after a topic change), which keeps prompts short and fast on small hardware.
+
+The model and CPU/GPU mode can be switched at runtime from the GUI (`num_gpu` = 0 for CPU, 99 for full GPU offload).
+Only models that are actually installed are offered.
+
+| Model | Parameters | Download size* | Notes |
+|---|---|---|---|
+| `llama3.2:3b` (default) | 3 B | ~2.0 GB | fastest, good for chat and the fallback |
+| `mistral:7b` | 7 B | ~4.1 GB | balanced speed and quality |
+| `qwen2.5:7b` | 7 B | ~4.7 GB | strong on factual and multilingual input |
+| `llama3.1:8b` | 8 B | ~4.9 GB | strongest general answers, slowest |
+
+```bash
+ollama pull llama3.2:3b      # pull any of the others the same way
+```
+
+### Speech-to-text (STT) — Whisper
+
+`src/voice_input.py` transcribes speech locally with **faster-whisper** (OpenAI Whisper weights, CTranslate2 runtime;
+`openai-whisper` is the fallback). Pipeline: record from the USB microphone at its native 48 kHz -> resample to
+16 kHz (the rate Whisper expects; this fixed garbled transcriptions) -> optional noise reduction -> energy-based
+voice-activity detection with four sensitivity levels (`low`, `medium`, `high`, `very_high`) -> Whisper (English).
+It runs on CUDA in fp16 when a GPU is available, otherwise on CPU in int8. Known Whisper hallucinations on silence
+or noise ("thanks for watching", "please subscribe", ...) are filtered out before they reach the intent detector.
+
+Choose the size with `--voice-model` (code default `large-v3`; `base` is a good CPU choice):
+
+| Model | Parameters | Size* | Typical use |
+|---|---|---|---|
+| `tiny` | 39 M | ~75 MB | very fast, lowest accuracy |
+| `base` | 74 M | ~145 MB | good on CPU |
+| `small` | 244 M | ~465 MB | balanced |
+| `medium` | 769 M | ~1.5 GB | accurate, needs a good CPU/GPU |
+| `large-v3` | 1.55 B | ~3.1 GB | most accurate, GPU recommended |
+
+### Text-to-speech (TTS) — Piper
+
+`src/voice_output.py` speaks with **Piper**, a fast local neural TTS engine, using the `en_US-ryan-medium` voice
+(ONNX, 22.05 kHz, about 60 MB). Replies are synthesised sentence by sentence so speech starts quickly, and the
+audio is played through PipeWire (`paplay`, then `pw-play`, then `aplay` as fallbacks) on an auto-detected
+Bluetooth speaker, or the default output if none is connected. Speech can be interrupted at any time.
+`scripts/install_piper.sh` installs Piper and downloads the voice. The app expects the voice files at
+`~/piper_models/en_US-ryan-medium.onnx` and `.onnx.json`.
+
+\*Sizes are approximate. Larger models are more accurate but need more disk, RAM or VRAM and add latency.
+Check your own with `ollama list`.
 
 ## Main libraries
 
@@ -97,34 +214,6 @@ flowchart LR
 | Config | `PyYAML` | named locations |
 | UI | `tkinter` | monitoring GUI |
 
-## Models
-
-No model weights are stored in this repository. Each is downloaded on install or first use.
-
-**Language model (Ollama, selectable at runtime in the GUI; default `llama3.2:3b`)**
-
-| Model | Parameters | Download size* | Notes |
-|---|---|---|---|
-| `llama3.2:3b` (default) | 3 B | ~2.0 GB | fastest, good for chat and the fallback |
-| `mistral:7b` | 7 B | ~4.1 GB | balanced speed and quality |
-| `qwen2.5:7b` | 7 B | ~4.7 GB | strong on factual and multilingual input |
-| `llama3.1:8b` | 8 B | ~4.9 GB | strongest general answers, slowest |
-
-**Speech-to-text (Whisper, set with `--voice-model`; code default `large-v3`)**
-
-| Model | Parameters | Size* |
-|---|---|---|
-| `tiny` | 39 M | ~75 MB |
-| `base` | 74 M | ~145 MB |
-| `small` | 244 M | ~465 MB |
-| `medium` | 769 M | ~1.5 GB |
-| `large-v3` | 1.55 B | ~3.1 GB |
-
-**Text-to-speech:** Piper `en_US-ryan-medium` (ONNX, 22.05 kHz), about 60 MB.
-
-\*Approximate. Larger models are more accurate but need more disk, RAM or VRAM and add latency.
-Check your own with `ollama list`.
-
 ## Repository layout
 
 ```
@@ -141,7 +230,11 @@ src/                     Application (run from this directory)
   voice_output.py          Piper TTS -> PipeWire/Bluetooth
   locations.yaml           Named goals in map coordinates
 maps/                    Saved occupancy maps (SLAM output)
-scripts/                 Robot launch (SLAM / localization) + voice/TTS install scripts
+scripts/
+  robot_launch.sh          Step 1: SLAM/localization + initial pose + Nav2 + RViz
+  setup.bash               ROS 2 environment for the assistant terminal
+  install_voice.sh         Voice (STT) dependencies
+  install_piper.sh         Piper TTS + voice model
 docs/                    ROS 2 / Nav2 command cheat-sheet
 ```
 
@@ -153,25 +246,32 @@ docs/                    ROS 2 / Nav2 command cheat-sheet
 
 ## Quick start
 
+Use **two terminals**. Install once, then each session: robot first, assistant second.
+
 ```bash
-# 1. Environment
-source scripts/setup.bash                 # ROS 2 Jazzy, domain 23, Fast DDS profile
+# One-time setup
 pip install -r requirements.txt
 ollama pull llama3.2:3b
+./scripts/install_voice.sh          # optional: voice input
+./scripts/install_piper.sh          # optional: voice output
+```
 
-# 2. (Optional) voice
-./scripts/install_voice.sh
-./scripts/install_piper.sh
-# The app expects the Piper voice at ~/piper_models/en_US-ryan-medium.onnx (+ .onnx.json)
+**Terminal 1 — start the robot stack with the robot's position**
 
-# 3. Bring up localization on a saved map (or --mode slam to map a new area)
-./scripts/robot_launch.sh 0 0 0           # initial pose: x y yaw_deg
+```bash
+./scripts/robot_launch.sh 0 0 0     # x y yaw_deg   (add --mode slam to map a new area)
+```
 
-# 4. Run the assistant (from src/, so locations.yaml is found)
-cd src
-python3 main.py --text-only               # text chat + navigation
-python3 main.py --voice-model base --sensitivity medium   # voice mode
-python3 gui.py                            # GUI
+**Terminal 2 — start the assistant** (same ROS domain as terminal 1)
+
+```bash
+source scripts/setup.bash           # ROS 2 Jazzy, domain 23, Fast DDS profile
+cd src                              # run from src/ so locations.yaml is found
+python3 gui.py                      # GUI (chat + voice + sensor plots)
+
+# or, without the GUI:
+python3 main.py --text-only                                # text chat + navigation
+python3 main.py --voice-model base --sensitivity medium    # voice mode
 ```
 
 Edit `src/locations.yaml` to define your own named goals (`x`, `y`, `theta` in map frame).
