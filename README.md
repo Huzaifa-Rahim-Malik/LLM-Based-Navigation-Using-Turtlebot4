@@ -68,10 +68,11 @@ flowchart TB
 
 ### How it works
 
-1. **Input.** The user types in the  GUI, or speaks. For speech, `sounddevice` records from the USB
-   microphone at 48 kHz, voice-activity thresholds (4 sensitivity levels) detect when the user stops talking, the
-   audio is resampled to 16 kHz with `scipy`, and Whisper transcribes it locally (CUDA fp16 if a GPU is present,
-   otherwise CPU int8).
+1. **Input.** The user types in the GUI, or speaks. In the GUI, speech is push-to-talk: the user presses the mic
+   button to start and presses it again to tell the system the command has ended. `sounddevice` records from the USB
+   microphone at 48 kHz, the audio is resampled to 16 kHz with `scipy`, and Whisper transcribes it locally (CUDA fp16
+   if a GPU is present, otherwise CPU int8). Terminal voice mode has no button, so it uses voice-activity detection
+   to end the recording instead.
 2. **Intent detection** (`intent_detector.py`). Fast rule-based matching decides *navigate* vs *chat* from trigger
    phrases ("go to", "take me to", ...) and question prefixes ("what", "can you", ...). No LLM call is needed, so
    the decision is instant and deterministic.
@@ -185,27 +186,66 @@ ollama pull llama3.2:3b      # pull any of the others the same way
 ### Speech-to-text (STT) — Whisper
 
 `src/voice_input.py` transcribes speech locally with **faster-whisper** (OpenAI Whisper weights, CTranslate2 runtime;
-`openai-whisper` is the fallback). Pipeline: record from the USB microphone at its native 48 kHz -> resample to
-16 kHz (the rate Whisper expects; this fixed garbled transcriptions) -> optional noise reduction -> energy-based
-voice-activity detection with four sensitivity levels (`low`, `medium`, `high`, `very_high`) -> Whisper (English).
-It runs on CUDA in fp16 when a GPU is available, otherwise on CPU in int8. Known Whisper hallucinations on silence
-or noise ("thanks for watching", "please subscribe", ...) are filtered out before they reach the intent detector.
+`openai-whisper` is the fallback).
+
+**In the GUI, speech is push-to-talk.** Press the mic button to start recording (it turns red and shows a stop
+symbol), speak, then press it again. That second press is the command that the speech has ended, so no silence
+detection is needed and pauses or background noise cannot cut the command short. The recording (at the microphone's
+native 48 kHz) is then processed:
+
+1. resampled to 16 kHz, the rate Whisper expects (this fixed garbled transcriptions);
+2. rejected if there is no signal at all (unplugged or dead microphone);
+3. volume-normalised, so quiet microphones still reach Whisper at a usable level;
+4. transcribed by Whisper in English, with a prompt that lists the known location names from `locations.yaml`, so
+   abbreviations such as "DG Office" or "BOQ" are preferred over similar-sounding English words;
+5. checked against known Whisper hallucinations on silence or noise ("thanks for watching", "please subscribe", ...);
+6. corrected for known mishearings of location names (for example "digi office" becomes "DG Office").
+
+It runs on CUDA in fp16 when a GPU is available, otherwise on CPU in int8.
+
+**If the recording is discarded** (no audio, no signal, a hallucination, or empty text), the GUI shows a warning
+("Could not understand audio"), nothing is sent to the assistant, and the status returns to *Ready*. Press the mic
+button again to record a new command.
+
+**Terminal voice mode** (`main.py`) has no button, so it uses automatic voice-activity detection instead: four
+sensitivity levels (`--sensitivity`), recording stops after about 1.5 s of silence, and recordings shorter than
+0.3 s are discarded.
 
 **How the speech-to-text component works**
 
 ```mermaid
-flowchart LR
-    MIC["USB microphone<br/>native 48 kHz"] --> REC["Record with sounddevice"]
-    REC --> VAD{"Voice activity<br/>(energy threshold,<br/>4 sensitivity levels)"}
-    VAD -- "speech detected" --> REC
-    VAD -- "silence for 1.5 s" --> LEN{"Longer than<br/>0.3 s?"}
-    LEN -- no --> DROP["Discard<br/>(too short)"]
-    LEN -- yes --> RS["Resample 48 -> 16 kHz<br/>(scipy)"]
-    RS --> NR["Optional noise reduction"]
-    NR --> W["Whisper (faster-whisper)<br/>English<br/>GPU: CUDA fp16 / CPU: int8"]
-    W --> F{"Known hallucination?<br/>e.g. 'thanks for watching'"}
-    F -- yes --> DROP
-    F -- no --> OUT["Transcript -> intent detector"]
+flowchart TB
+    subgraph G["GUI voice mode — push-to-talk"]
+      direction LR
+      B1["Press mic button<br/>start recording"] --> B2["Speak<br/>mic at native 48 kHz"]
+      B2 --> B3["Press stop button<br/>= end of command"]
+    end
+
+    subgraph T["Terminal voice mode — automatic"]
+      direction LR
+      C1["Record with voice activity detection<br/>4 sensitivity levels"] --> C2{"About 1.5 s<br/>of silence?"}
+      C2 -- no --> C1
+      C2 -- yes --> C3{"Longer than<br/>0.3 s?"}
+    end
+
+    subgraph P["Processing in voice_input.py"]
+      direction LR
+      P1["Resample<br/>48 to 16 kHz"] --> P2{"No audio or<br/>no signal?"}
+      P2 -- no --> P3["Normalise volume"]
+      P3 --> P4["Whisper, English<br/>prompt with known locations<br/>GPU: CUDA fp16 / CPU: int8"]
+      P4 --> P5{"Hallucination<br/>or empty text?"}
+      P5 -- no --> P6["Fix known mishearings<br/>digi office to DG Office"]
+    end
+
+    B3 --> P1
+    C3 -- yes --> P1
+    P6 --> OUT["Transcript sent to<br/>the intent detector"]
+
+    C3 -- no --> D
+    P2 -- yes --> D
+    P5 -- yes --> D
+    D["Discard and show warning<br/>Could not understand audio"] --> W["Status back to Ready<br/>press mic button to try again"]
+    W -.-> B1
 ```
 
 Choose the size with `--voice-model` (code default `large-v3`; `base` is a good CPU choice):
