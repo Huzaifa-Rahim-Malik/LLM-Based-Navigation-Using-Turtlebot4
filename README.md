@@ -149,6 +149,28 @@ after a topic change), which keeps prompts short and fast on small hardware.
 The model and CPU/GPU mode can be switched at runtime from the GUI (`num_gpu` = 0 for CPU, 99 for full GPU offload).
 Only models that are actually installed are offered.
 
+**How the LLM component works**
+
+```mermaid
+flowchart LR
+    IN["User text<br/>typed or transcribed"] --> INT{"Intent detector<br/>(rule-based)"}
+
+    INT -- chat --> H["Build prompt<br/>system prompt + last few turns<br/>(only the last turn after a topic change)"]
+    H --> OLL["Ollama<br/>selected model<br/>num_gpu: 0 = CPU, 99 = GPU"]
+    OLL --> R1["Chat reply"]
+
+    INT -- navigate --> RULES{"Rules resolve the target?<br/>coordinates / names / synonyms"}
+    RULES -- yes --> GO["Send goal to Nav2<br/>status message from a template<br/>(no LLM call)"]
+    RULES -- no --> FB["LLM fallback<br/>ask Ollama to map the request<br/>to a known location"]
+    FB --> OK{"Location on the map?"}
+    OK -- yes --> GO
+    OK -- no --> R2["Polite reply:<br/>place not on the map,<br/>list known locations"]
+
+    R1 --> OUT["GUI chat + Piper TTS"]
+    R2 --> OUT
+    GO --> OUT
+```
+
 | Model | Parameters | Download size* | Notes |
 |---|---|---|---|
 | `llama3.2:3b` (default) | 3 B | ~2.0 GB | fastest, good for chat and the fallback |
@@ -169,6 +191,23 @@ voice-activity detection with four sensitivity levels (`low`, `medium`, `high`, 
 It runs on CUDA in fp16 when a GPU is available, otherwise on CPU in int8. Known Whisper hallucinations on silence
 or noise ("thanks for watching", "please subscribe", ...) are filtered out before they reach the intent detector.
 
+**How the speech-to-text component works**
+
+```mermaid
+flowchart LR
+    MIC["USB microphone<br/>native 48 kHz"] --> REC["Record with sounddevice"]
+    REC --> VAD{"Voice activity<br/>(energy threshold,<br/>4 sensitivity levels)"}
+    VAD -- "speech detected" --> REC
+    VAD -- "silence for 1.5 s" --> LEN{"Longer than<br/>0.3 s?"}
+    LEN -- no --> DROP["Discard<br/>(too short)"]
+    LEN -- yes --> RS["Resample 48 -> 16 kHz<br/>(scipy)"]
+    RS --> NR["Optional noise reduction"]
+    NR --> W["Whisper (faster-whisper)<br/>English<br/>GPU: CUDA fp16 / CPU: int8"]
+    W --> F{"Known hallucination?<br/>e.g. 'thanks for watching'"}
+    F -- yes --> DROP
+    F -- no --> OUT["Transcript -> intent detector"]
+```
+
 Choose the size with `--voice-model` (code default `large-v3`; `base` is a good CPU choice):
 
 | Model | Parameters | Size* | Typical use |
@@ -187,6 +226,22 @@ audio is played through PipeWire (`paplay`, then `pw-play`, then `aplay` as fall
 Bluetooth speaker, or the default output if none is connected. Speech can be interrupted at any time.
 `scripts/install_piper.sh` installs Piper and downloads the voice. The app expects the voice files at
 `~/piper_models/en_US-ryan-medium.onnx` and `.onnx.json`.
+
+**How the text-to-speech component works**
+
+```mermaid
+flowchart LR
+    TXT["Reply or arrival message"] --> Q["TTS queue<br/>(one worker thread,<br/>speech never overlaps)"]
+    Q --> SPLIT["Split into sentences"]
+    SPLIT --> P["Piper<br/>en_US-ryan-medium<br/>ONNX, 22.05 kHz"]
+    P --> PCM["Audio for one sentence"]
+    PCM --> PLAY["Play with PipeWire<br/>paplay -> pw-play -> aplay"]
+    PLAY --> SINK{"Bluetooth sink<br/>found?"}
+    SINK -- yes --> BT["Bluetooth speaker"]
+    SINK -- no --> DEF["Default audio output"]
+    PLAY -. "next sentence" .-> P
+    STOP["Interrupt / stop"] -. "cancels speech" .-> Q
+```
 
 \*Sizes are approximate. Larger models are more accurate but need more disk, RAM or VRAM and add latency.
 Check your own with `ollama list`.
