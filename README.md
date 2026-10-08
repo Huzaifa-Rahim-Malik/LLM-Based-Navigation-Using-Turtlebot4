@@ -415,9 +415,14 @@ PC: __ CPU / __ GPU / __ GB RAM, LLM `llama3.2:3b`, Whisper `__`.
 
 ## Adding a demo
 
-Record a 30–60 s clip (voice command -> robot moving -> arrival announcement, with the GUI visible),
-export a short GIF to `docs/images/demo.gif`, and embed it near the top of this README with
-`![demo](docs/images/demo.gif)`.
+<p align="center"> <img src="Results/From_1Loc_to_2.gif" alt="From_1Loc_to_2" width="800">
+<br>
+<br>
+<img src="Results/From_1Loc_to_2_arena.gif" alt="From_1Loc_to_2_arena" width="800"> 
+<br>
+<br>
+<img src="Results/From_2Loc_to_1.gif" alt="From_2Loc_to_1 demo" width="800"> 
+</p>
 
 ## Known limitations
 
