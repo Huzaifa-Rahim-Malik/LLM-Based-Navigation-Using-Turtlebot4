@@ -27,7 +27,7 @@ Everything runs **locally** – speech recognition, LLM inference and text-to-sp
 ## Architecture
 
 The system starts in **two steps**. First the robot stack is brought up with `scripts/robot_launch.sh`
-(together with the robot's starting position). Then the assistant (`src/gui.py`, or `src/main.py` for the terminal)
+(together with the robot's starting position). Then the assistant (`src/gui.py` for the terminal)
 is started and talks to that running stack.
 
 ```mermaid
@@ -40,7 +40,7 @@ flowchart TB
       L4 --> L5["RViz"]
     end
 
-    subgraph S2["Step 2 — src/gui.py  (or src/main.py)"]
+    subgraph S2["Step 2 — src/gui.py"]
       direction LR
       subgraph Input
         MIC[Microphone] --> STT[Whisper STT]
@@ -63,7 +63,7 @@ flowchart TB
 
 ### How it works
 
-1. **Input.** The user types in the terminal or GUI, or speaks. For speech, `sounddevice` records from the USB
+1. **Input.** The user types in the  GUI, or speaks. For speech, `sounddevice` records from the USB
    microphone at 48 kHz, voice-activity thresholds (4 sensitivity levels) detect when the user stops talking, the
    audio is resampled to 16 kHz with `scipy`, and Whisper transcribes it locally (CUDA fp16 if a GPU is present,
    otherwise CPU int8).
@@ -73,9 +73,7 @@ flowchart TB
 3. **Chat path.** Chat messages go to a local LLM through Ollama (`response_generator.py`).
 4. **Navigation path** (`location_extractor.py`). The target is resolved in this order:
    raw coordinates -> named location in `locations.yaml` (with synonyms and fuzzy matching) -> LLM fallback.
-   A token-coverage guard (at least 75 % of the meaningful words must match) rejects near-misses such as
-   "dg office" vs "dg wd office", so the robot is not sent to the wrong room. Requests such as
-   "go to home then lawn" become an ordered queue, and goals are checked against the map bounds.
+   A token-coverage guard (at least 75 % of the meaningful words must match) rejects near-misses. Commands like "go to home then lawn" become an ordered queue, and goals are checked against the map bounds.
 5. **Navigation** (`robot_navigator.py`). Each goal is sent to Nav2 as a `NavigateToPose` action through
    `BasicNavigator`, in the `map` frame. The pose comes from AMCL (`/amcl_pose`). A dedicated ROS executor thread
    keeps callbacks running without blocking the chat.
