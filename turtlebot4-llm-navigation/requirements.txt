@@ -1,0 +1,17 @@
+# Python dependencies for the voice/text navigation assistant.
+# ROS 2 Jazzy packages (rclpy, nav2_simple_commander, geometry_msgs, nav_msgs,
+# sensor_msgs, ...) come from the ROS 2 distribution via apt, NOT pip.
+
+numpy
+scipy
+PyYAML
+transforms3d
+
+# LLM chat + location-extraction fallback (requires a running Ollama server)
+ollama
+
+# Voice input (speech-to-text)
+openai-whisper
+faster-whisper
+sounddevice
+torch
