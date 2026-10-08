@@ -413,8 +413,7 @@ PC: __ CPU / __ GPU / __ GB RAM, LLM `llama3.2:3b`, Whisper `__`.
 
 **Takeaways:** (one or two sentences: which model and settings you recommend and why) __
 
-## Adding a demo
-
+## Demo From One Location to Another Location
 <p align="center"> <img src="Results/From_1Loc_to_2.gif" alt="From_1Loc_to_2" width="800">
 <br>
 <br>
