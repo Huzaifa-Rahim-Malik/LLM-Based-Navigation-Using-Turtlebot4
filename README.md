@@ -42,16 +42,21 @@ flowchart TB
 
     subgraph S2["Step 2 — src/gui.py"]
       direction LR
-      subgraph Input
-        MIC[Microphone] --> STT[Whisper STT]
-        TXT[Text / GUI chat]
+      subgraph Input["Input"]
+        direction TB
+        subgraph IN1["Input type I — Voice"]
+          MIC[Microphone] --> STT[Whisper STT]
+        end
+        subgraph IN2["Input type II — Text"]
+          TXT["GUI / terminal chat"]
+        end
       end
       STT --> INT["Intent detector<br/>rule-based"]
       TXT --> INT
       INT -- chat --> LLM["Ollama LLM<br/>response generator"]
       INT -- navigate --> LOC["Location extractor<br/>rules + synonyms + LLM fallback"]
-      LOC --> LM[("locations.yaml")]
-      LOC --> NAV["Robot navigator<br/>Nav2 BasicNavigator"]
+      LM[("locations.yaml")] --> LOC
+      LOC -- "target x, y, theta" --> NAV["Robot navigator<br/>Nav2 BasicNavigator"]
       NAV <--> ROBOT["TurtleBot 4<br/>Nav2 + AMCL + SLAM map"]
       LLM --> TTS["Piper TTS -> Bluetooth speaker"]
       NAV --> TTS
