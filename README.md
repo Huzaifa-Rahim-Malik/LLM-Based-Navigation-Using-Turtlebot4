@@ -415,18 +415,18 @@ PC: __ CPU / __ GPU / __ GB RAM, LLM `llama3.2:3b`, Whisper `__`.
 
 ## Demo From One Location to Another Location
 **GUI + RViz Visualization**
-<p align="center"> <img src="Results/From_1Loc_to_2.gif" alt="From_1Loc_to_2" width="800">
+<p align="center"> <img src="Results/From_1Loc_to_2.gif" alt="From_1Loc_to_2" width="800"></p>
 
 
 **Real Time Navigation**
 
-<img src="Results/From_1Loc_to_2_arena.gif" alt="From_1Loc_to_2_arena" width="800"> 
+<p align="center"><img src="Results/From_1Loc_to_2_arena.gif" alt="From_1Loc_to_2_arena" width="800"> </p>
 
 <br>
 
 **GUI + RViz Visualization**
 
-<img src="Results/From_2Loc_to_1.gif" alt="From_2Loc_to_1 demo" width="800"> 
+<p align="center"><img src="Results/From_2Loc_to_1.gif" alt="From_2Loc_to_1 demo" width="800"> 
 </p>
 
 ## Known limitations
