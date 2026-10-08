@@ -96,30 +96,26 @@ the GUI backend thread. Chatting and speaking stay responsive while the robot is
 One script starts everything the assistant needs on the robot side. Run it in its own terminal and keep it open.
 
 ```bash
-./scripts/robot_launch.sh <x> <y> <yaw_deg> [--mode localization|slam] [map.yaml]
+./scripts/robot_launch.sh <x> <y> <yaw_deg> 
 ```
 
 | Argument | Meaning |
 |---|---|
 | `<x> <y>` | Robot's current position on the map, in metres |
 | `<yaw_deg>` | Robot's heading in degrees: `0` = East, `90` = North, `180` = West, `270` = South |
-| `--mode localization` | **Default.** Localize on an existing map (default `maps/robotic_arena.yaml`, or pass another `map.yaml`) |
-| `--mode slam` | Build a new map live with SLAM Toolbox (no saved map needed) |
-| `--x`, `--y`, `--yaw-deg`, `--yaw` | Named-flag alternative (`--yaw` takes radians) |
+
 
 Examples:
 
 ```bash
 ./scripts/robot_launch.sh 0 0 0                          # localize at the origin, facing East
 ./scripts/robot_launch.sh 1 1 90                         # localize at x=1, y=1, facing North
-./scripts/robot_launch.sh 1.5 -0.3 90 maps/map_1.yaml    # use a different saved map
-./scripts/robot_launch.sh 0 0 0 --mode slam              # map a new area
 ```
 
 What it does, in order:
 
-1. Checks that ROS 2 Jazzy is installed and (in localization mode) that the map file exists.
-2. Sources ROS 2 and sets `ROS_DOMAIN_ID=23`.
+1. Checks that ROS 2 Jazzy is installed.
+2. Sources ROS 2 and sets `ROS_DOMAIN_ID=23`. or any other ROS_ID
 3. Launches `turtlebot4_navigation` **SLAM** or **localization** (AMCL on the saved map).
 4. **Localization mode:** converts the yaw to a quaternion and publishes the starting pose on `/initialpose`
    (retried up to 5 times until AMCL is ready), so the robot is localized without clicking in RViz.
@@ -206,6 +202,12 @@ Check your own with `ollama list`.
 | Config | `PyYAML` | named locations |
 | UI | `tkinter` | monitoring GUI |
 
+## Requirements
+- Ubuntu 24.04, **ROS 2 Jazzy**, TurtleBot 4 packages (`turtlebot4_navigation`, `turtlebot4_viz`), Nav2, SLAM Toolbox
+- [Ollama](https://ollama.com) with a local model (default `llama3.2:3b`)
+- Python packages: `pip install -r requirements.txt`
+
+
 ## Repository layout
 
 ```
@@ -230,11 +232,6 @@ scripts/
 docs/                    ROS 2 / Nav2 command cheat-sheet
 ```
 
-## Requirements
-
-- Ubuntu 24.04, **ROS 2 Jazzy**, TurtleBot 4 packages (`turtlebot4_navigation`, `turtlebot4_viz`), Nav2, SLAM Toolbox
-- [Ollama](https://ollama.com) with a local model (default `llama3.2:3b`)
-- Python packages: `pip install -r requirements.txt`
 
 ## Quick start
 
