@@ -348,7 +348,7 @@ ollama pull llama3.2:3b
 **Terminal 1 — start the robot stack with the robot's position**
 
 ```bash
-./scripts/robot_launch.sh 0 0 0     # x y yaw_deg   (add --mode slam to map a new area)
+./scripts/robot_launch.sh 0 0 0     # x y yaw_deg   
 ```
 
 **Terminal 2 — start the assistant** (same ROS domain as terminal 1)
@@ -357,13 +357,9 @@ ollama pull llama3.2:3b
 source scripts/setup.bash           # ROS 2 Jazzy, domain 23, Fast DDS profile
 cd src                              # run from src/ so locations.yaml is found
 python3 gui.py                      # GUI (chat + voice + sensor plots)
-
-# or, without the GUI:
-python3 main.py --text-only                                # text chat + navigation
-python3 main.py --voice-model base --sensitivity medium    # voice mode
 ```
 
-Edit `src/locations.yaml` to define your own named goals (`x`, `y`, `theta` in map frame).
+Edit `src/locations.yaml` to define your own named goals .
 More ROS 2 commands (SLAM, map saving, docking, reverse-motion override): [`docs/turtlebot4_commands.md`](docs/turtlebot4_commands.md).
 
 ## Results
@@ -430,7 +426,6 @@ PC: __ CPU / __ GPU / __ GB RAM, LLM `llama3.2:3b`, Whisper `__`.
 </p>
 
 ## Known limitations
-
 - Locations and the 8 x 3 m map bounds are specific to the original lab setup (`src/locations.yaml`, `MAP_BOUNDS` in `location_extractor.py`).
 - Code was developed against specific audio hardware (USB mic at 48 kHz, PipeWire Bluetooth sink).
 - Single-robot only; no automated tests yet.
