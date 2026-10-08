@@ -1,8 +1,4 @@
-<!-- <p align="center">
-  <img src="docs/images/turtlebot4.png" alt="TurtleBot 4" width="220">
-</p> -->
-
-# Natural-Language Navigation for TurtleBot 4
+# Natural-Language Navigation for TurtleBot 4 
 
 A voice- and text-controlled navigation assistant for a **TurtleBot 4** running **ROS 2 Jazzy**, **SLAM Toolbox**
 and **Nav2**. You tell the robot where to go in plain language ("take me to the robotics lab, then the lawn"),
@@ -10,9 +6,7 @@ a local LLM handles conversation and ambiguous requests, and Nav2 drives the rob
 
 Everything runs **locally** – speech recognition, LLM inference and text-to-speech need no cloud services.
 
-> **Demo:** _add a GIF / video link here (see "Adding a demo" below)_
-
----
+<p align="center"> <img src="Results/GUI.jpeg" alt="Monitoring GUI" width="800"><br><br> <img src="Results/Demo.gif" alt="Voice command to robot arrival demo" width="800"> </p>
 
 ## Features
 
