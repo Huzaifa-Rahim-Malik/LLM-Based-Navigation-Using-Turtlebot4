@@ -44,12 +44,6 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 1.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}}"
 ```
 
-## Docking
-
-```bash
-ros2 action send_goal /dock irobot_create_msgs/action/Dock "{}"
-```
-
 ## Enable reverse motion (run on the TurtleBot's Raspberry Pi)
 
 ```bash
