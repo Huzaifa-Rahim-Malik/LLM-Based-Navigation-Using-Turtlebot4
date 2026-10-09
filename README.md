@@ -362,53 +362,146 @@ python3 gui.py                      # GUI (chat + voice + sensor plots)
 Edit `src/locations.yaml` to define your own named goals .
 More ROS 2 commands (SLAM, map saving, docking, reverse-motion override): [`docs/turtlebot4_commands.md`](docs/turtlebot4_commands.md).
 
-## Results
+# Results
 
-Test setup: TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy, map maps/robotic_arena.yaml, __ named goals, PC: __ CPU / __ GPU / __ GB RAM, LLM llama3.2:3b, Whisper base, small and large-v3. Evaluated on 9 October 2026. All raw results are in eval/results/.
+**Test setup:** TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy, map `maps/robotic_arena.yaml`, 21 named goals.
 
-1. Navigation success
+**PC specifications:**
+- CPU: Intel Core i9-14900KF
+- GPU: NVIDIA GeForce RTX 4070 Ti SUPER (16 GB)
+- RAM: 62 GB
+- LLM: `llama3.2:3b`
+- Speech recognition: Whisper `base`, `small`, and `large-v3`
+- Raw results: `eval/results/`
 
-Language understanding was tested on text, so speech errors do not mix with understanding errors (N = 45 navigation commands and 8 chat messages, 53 in total, from eval/nlu_test_cases.csv). "Rules only" uses no LLM. "Rules + LLM" lets llama3.2:3b decide when the rules cannot resolve a target. Robot runs (reaching the goal) are __ runs per command, same start pose each time.
+## 1. Navigation Success
 
-Command type	Example	N	Understood: rules only	Understood: rules + LLM	Reached goal	Notes
-Named location	"go to the lawn"	13	13 / 13	13 / 13	__ / __	
-Named + filler words	"can you take me to the canteen please"	6	0 / 6	5 / 6	__ / __	LLM fallback needed
-Synonym	"take me to human resources"	7	0 / 7	3 / 7	__ / __	LLM fallback needed
-Coordinates	"go to x 1.0 y 2.0"	6	5 / 6	5 / 6	__ / __	x .. y .. form not parsed
-Multi-stop	"go to home then lawn"	6	6 / 6	6 / 6	__ / __	
-Invalid / unknown place	"go to the moon"	7	correctly rejected 7 / 7	correctly rejected 7 / 7	n/a	no goal sent
-Chat (not navigation)	"what is your name"	8	8 / 8	8 / 8	n/a	
-All commands		53	39 / 53 (74 %)	47 / 53 (89 %)		
+Language understanding was tested using text input to separate language-understanding errors from speech-recognition errors. The dataset contains 45 navigation commands and 8 chat messages (53 total), from `eval/nlu_test_cases.csv`.
 
-2. Speech recognition (N = 39 spoken commands per model, quiet room, GPU)
+- **Rules only:** No LLM is used.
+- **Rules + LLM:** `llama3.2:3b` handles targets that the rules cannot resolve.
+- **Reached goal:** Each command is tested using the same starting pose for each run.
 
-Whisper model	Word error rate	Command understood	Transcription time (s)
-base	16.0 %	20 / 39	0.03
-small	13.9 %	21 / 39	0.07
-large-v3	10.2 %	23 / 39	0.17
+| Command Type | Example | N | Rules Only | Rules + LLM | 
+|---|---|---:|---:|---:|
+| Named location | `go to the lawn` | 13 | 13/13 | 13/13 | __ / __ | |
+| Named + filler words | `can you take me to the canteen please` | 6 | 0/6 | 5/6 | __ / __ | LLM fallback needed |
+| Synonym | `take me to human resources` | 7 | 0/7 | 3/7 | __ / __ | LLM fallback needed |
+| Coordinates | `go to x 1.0 y 2.0` | 6 | 5/6 | 5/6 | __ / __ | x/y form not parsed |
+| Multi-stop | `go to home then lawn` | 6 | 6/6 | 6/6 | __ / __ | |
+| Invalid / unknown place | `go to the moon` | 7 | Rejected 7/7 | Rejected 7/7 | N/A | No goal sent |
+| Chat (not navigation) | `what is your name` | 8 | 8/8 | 8/8 | N/A | |
+| **All commands** | — | **53** | **39/53 (74%)** | **47/53 (89%)** | — | |
 
-Word error rate is the share of reference words that are wrong. "Command understood" means the transcript resolved to the right target (or, for invalid places, was rejected). Transcription time is the mean per clip, warm-up excluded. By command type, plain named commands work well on every model (11 to 12 of 13, word error rate 2 to 6 %), and all invalid places are rejected (7 / 7). The failures are almost all in filler-word commands (0 / 6 on every model) and synonyms (1 / 7 on every model). The transcripts of those are close to perfect (filler word error rate 2.5 % on large-v3), so the cause is in the language-understanding rules, not in the speech recognition.
+## 2. Speech Recognition
 
-**3. End-to-end latency** (mean of __ runs; CPU vs GPU)
+**Test conditions:** 39 spoken commands per model, quiet room, GPU acceleration.
+
+| Whisper Model | Word Error Rate | Command Understood | Transcription Time (s) |
+|---|---:|---:|---:|
+| `base` | 16.0% | 20/39 | 0.03 |
+| `small` | 13.9% | 21/39 | 0.07 |
+| `large-v3` | 10.2% | 23/39 | 0.17 |
+
+Word error rate (WER) is the proportion of reference words that were incorrectly transcribed. A command is considered understood if the transcript resolves to the correct target or an invalid location is correctly rejected. Transcription time is the mean per clip, excluding warm-up.
+
+### Observations
+
+- Plain named-location commands performed well across all models, with 11–12 of 13 commands understood and WER between 2% and 6%.
+- All invalid locations were correctly rejected (7/7).
+- Filler-word commands failed on all models (0/6), while synonyms were understood in only 1/7 cases per model.
+- The transcripts for filler-word commands were nearly perfect. For `large-v3`, the filler-word WER was 2.5%, suggesting that the main limitation is language understanding rather than speech recognition.
+
+## 3. End-to-End Latency (CPU vs. GPU)
 
 | Stage | CPU | GPU |
-|---|---|---|
-| Speech -> text | __ s | __ s |
-| Intent + location extraction (rules) | __ ms | __ ms |
-| LLM fallback (when used) | __ s | __ s |
-| Goal accepted by Nav2 | __ s | __ s |
-| **Utterance -> robot starts moving** | **__ s** | **__ s** |
+|---|---:|---:|
+| Speech to text (`large-v3`, mean of 39 clips) | 4.05 s (std 0.12) | 0.17 s (std 0.02) |
+| Intent and location extraction (rules, median of 45) | 0.014 ms | 0.015 ms |
+| LLM fallback (median of 7 warm calls) | 0.38 s | 0.10 s |
+| LLM first call after startup (model loading included) | 17.95 s | 24.41 s |
 
-**4. LLM comparison** (same __ prompts, GPU/CPU: __)
 
-| Model | Fallback location accuracy | Mean response time | Peak RAM / VRAM |
-|---|---|---|---|
-| `llama3.2:3b` | __ % | __ s | __ GB |
-| `llama3.1:8b` | __ % | __ s | __ GB |
+### Latency Notes
 
-**Observed failure cases:** (e.g. misheard words in noise, goals the planner could not reach, ambiguous names) __
+The rule-based processing path takes approximately 0.015 ms, making it effectively instantaneous. Therefore, LLM latency affects only commands that require fallback processing.
 
-**Takeaways:** (one or two sentences: which model and settings you recommend and why) __
+The first LLM call after application startup or switching between CPU and GPU takes approximately 18–24 seconds because the model must be loaded. These calls are excluded from the warm-call averages.
+
+One GPU call took 3.8 seconds, compared with a median of 0.10 seconds, indicating occasional latency spikes.
+
+The CPU fallback results differ between Sections 3 and 4 because they were obtained using separate test scripts. Section 3 reports the median of the full language-understanding run, whereas Section 4 reports the mean of a separate per-model test. The GPU results are approximately 0.10 seconds in both tests.
+
+## 4. LLM Comparison
+
+Both models were evaluated using:
+- 8 fallback location commands that the rules could not resolve and that passed the LLM guard.
+- 10 short chat questions using the same prompt template as the application.
+
+Times exclude the initial model-loading call.
+
+**Source:** `eval/results/llm_comparison.csv`
+
+| Model | Device | Fallback Location Accuracy | Fallback Time (s) | Chat Reply Time (s) | Tokens/s | Model Memory | GPU Memory in Use |
+|---|---|---:|---:|---:|---:|---|---:|
+| `llama3.2:3b` | CPU | 8/8 | 0.69 | 2.55 ± 0.20 | 28.3 | 2.5 GB RAM | N/A |
+| `llama3.2:3b` | GPU | 8/8 | 0.10 | 0.69 ± 1.06 | 249.5 | 2.8 GB | 3.5 GB |
+| `llama3.1:8b` | CPU | 8/8 | 1.03 | 5.28 ± 0.53 | 12.8 | 5.2 GB RAM | N/A |
+| `llama3.1:8b` | GPU | 8/8 | 0.09 | 0.64 ± 0.04 | 119.5 | 5.5 GB | 6.0 GB |
+
+GPU memory usage includes approximately 0.55 GB used by other processes. The high standard deviation in the `llama3.2:3b` GPU chat time indicates one unusually slow call among the 10 questions.
+
+## 5. Observed Failure Cases
+
+### 5.1 Filler Words and Synonyms
+
+The rule-based system failed to resolve all 6 filler-word commands and all 7 synonym commands.
+
+Examples include:
+- `could you take me to the fire room`
+- `take me to human resources`
+- `go to hr`
+- `go to admin`
+
+The LLM fallback resolved 8 of these 13 cases.
+
+### 5.2 Commands Not Passed to the LLM
+
+Six cases failed even with the LLM available because the rule-based guard did not pass them to the fallback:
+
+- `could you take me to the fire room`
+- `take me to human resources`
+- `go to HR department`
+- `go to director general office`
+- `go to b o q`
+- `go to x 1.0 y 2.0`
+
+These failures indicate that the fallback guard needs to be improved so that unresolved commands can reach the LLM.
+
+### 5.3 Multi-Stop Voice Commands
+
+Multi-stop commands achieved 6/6 successful resolutions using text input. For spoken commands, the success rate was:
+- `base`: 1/6
+- `small`: 1/6
+- `large-v3`: 4/6
+
+Commands containing altered connectors, such as `and go to warehouse` or `then, go to warehouse`, were not consistently resolved.
+
+### 5.4 Short or Low-Energy Audio Clips
+
+Speech recognition occasionally generated hallucinated text, such as `Thank you`, from short or low-energy recordings. This motivated the silence and hallucination checks implemented in `voice_input.py`.
+
+## 6. Key Takeaways
+
+- **Language understanding:** Adding the LLM fallback increased text understanding from 74% (39/53) to 89% (47/53).
+- **Fallback latency:** The LLM adds approximately 0.4 seconds per fallback call in the full language-understanding test.
+- **Invalid locations:** The system correctly rejected all 7 invalid-location commands in the text test.
+- **Speech recognition:** Whisper `large-v3` on GPU achieved the lowest WER (10.2%) and an average transcription time of approximately 0.17 seconds.
+- **LLM selection:** Both `llama3.2:3b` and `llama3.1:8b` resolved all 8 fallback commands. The larger model showed no accuracy improvement in this test.
+- **Resource efficiency:** `llama3.2:3b` requires less memory and provides faster CPU chat responses, making it the recommended default.
+- **Limitations:** The sample sizes are small (6–13 commands per category), so differences of one command should not be overinterpreted.
+
+Overall, the results indicate that the main limitation is the rule-based language-understanding and fallback-guard logic, rather than speech recognition alone. Improving command normalization, synonym handling, coordinate parsing, and multi-stop connector processing should further improve system performance.
 
 ## Demo From One Location to Another Location
 **GUI + RViz Visualization**
