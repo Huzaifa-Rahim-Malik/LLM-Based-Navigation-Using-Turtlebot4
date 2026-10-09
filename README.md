@@ -228,10 +228,8 @@ Choose the size when starting the GUI, for example `python3 gui.py --voice-model
 
 | Model | Parameters | Size* | Typical use |
 |---|---|---|---|
-| `tiny` | 39 M | ~75 MB | very fast, lowest accuracy |
 | `base` | 74 M | ~145 MB | good on CPU |
 | `small` | 244 M | ~465 MB | balanced |
-| `medium` | 769 M | ~1.5 GB | accurate, needs a good CPU/GPU |
 | `large-v3` | 1.55 B | ~3.1 GB | most accurate, GPU recommended |
 
 ### Text-to-speech (TTS) — Piper
@@ -512,8 +510,8 @@ Overall, the results indicate that the main limitation is the rule-based languag
 - Locations and the 8 x 3 m map bounds are specific to the original lab setup (`src/locations.yaml`, `MAP_BOUNDS` in `location_extractor.py`).
 - Code was developed against specific audio hardware (USB mic at 48 kHz, PipeWire Bluetooth sink).
 - Single-robot only.
-- The robot-side navigation success rate was not measured quantitatively; the demo recordings above show real runs. The trial sheet is in `eval/navigation_trials_template.csv`.
-- No unit tests; the evaluation scripts in `eval/` test language understanding, speech recognition and the LLM.
+- The robot-side navigation success rate was not measured quantitatively; the demo recordings above show real runs. 
+
 
 ## License
 
