@@ -1,0 +1,25 @@
+diff --git a/src/location_extractor.py b/src/location_extractor.py
+index ced156e..2ef6baa 100644
+--- a/src/location_extractor.py
++++ b/src/location_extractor.py
+@@ -78,7 +78,10 @@ class LocationExtractor:
+             'go', 'to', 'take', 'me', 'navigate', 'move', 'head',
+             'drive', 'travel', 'get', 'reach', 'visit', 'bring',
+         ])
+-        input_tokens = [t for t in lower.split() if t not in _NAV_TRIGGERS]
++        _FILLER = frozenset(['the', 'a', 'an', 'please', 'can', 'could', 'would',
++                             'you', 'i', 'want', 'now', 'just'])
++        input_tokens = [t for t in lower.split()
++                        if t not in _NAV_TRIGGERS and t not in _FILLER]
+ 
+         exact, partial = [], []
+         for loc in all_locs:
+@@ -107,7 +110,7 @@ class LocationExtractor:
+             return partial
+ 
+         # Synonym fallback
+-        canon = self._REVERSE.get(lower)
++        canon = self._REVERSE.get(lower) or self._REVERSE.get(' '.join(input_tokens))
+         if canon:
+             for loc in all_locs:
+                 if loc.lower() == canon:

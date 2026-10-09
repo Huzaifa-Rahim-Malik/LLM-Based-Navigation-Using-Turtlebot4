@@ -1,0 +1,3 @@
+# One row per measurement. stage examples: speech_to_text, utterance_to_robot_moves. device: cpu or gpu. unit: s or ms.
+# example row (ignored):  gpu,utterance_to_robot_moves,<value>,s
+device,stage,value,unit

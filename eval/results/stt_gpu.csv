@@ -1,0 +1,118 @@
+model,file,type,reference,hypothesis,word_errors,ref_words,seconds,command_understood
+base,001_1.wav,named,go to Home,Go to Home.,0,3,0.027,1
+base,002_1.wav,named,Go to Lawn.,Go to Lawn.,0,3,0.024,1
+base,003_1.wav,named,go to robotics lab,Go to Robotics Lab.,0,4,0.029,1
+base,004_1.wav,named,take me to Main Gate,Take me to Main Gate.,0,5,0.03,1
+base,005_1.wav,named,navigate to BOQ,Navigate to BOQ.,0,3,0.034,1
+base,006_1.wav,named,head to Canteen,Head to complete.,1,3,0.032,0
+base,007_1.wav,named,move to Software Lab,Move to software lab.,0,4,0.044,1
+base,008_1.wav,named,drive to Finance office,Drive to Finance office.,0,4,0.039,1
+base,009_1.wav,named,go to Warehouse,Go to Weird House.,2,3,0.041,0
+base,010_1.wav,named,go to Director office,Go to Director office.,0,4,0.038,1
+base,011_1.wav,named,take me to Quantum Lab,Take me to Quantum Lab.,0,5,0.035,1
+base,012_1.wav,named,go to MOQ,Go to MOQ.,0,3,0.036,1
+base,013_1.wav,named,go to Security Gate,Go to Security Gate.,0,4,0.034,1
+base,014_1.wav,named_filler,go to the lawn,Go to the Lawn.,0,4,0.043,0
+base,015_1.wav,named_filler,please take me to the main gate,Please take me to the main gate.,0,7,0.04,0
+base,016_1.wav,named_filler,can you take me to the canteen please,"Can you take me to be continued, please?",2,8,0.078,0
+base,017_1.wav,named_filler,i want to go to the warehouse,I want to go to the warehouse.,0,7,0.047,0
+base,018_1.wav,named_filler,could you take me to the fire room,Make me to DG Office room.,5,8,0.033,0
+base,019_1.wav,named_filler,take me to the robotics lab,Take me to the Robotics Lab.,0,6,0.037,0
+base,020_1.wav,synonym,take me to human resources,"Take me to the, take me to Human Resource.",5,5,0.043,0
+base,021_1.wav,synonym,go to hr,Go to HR.,0,3,0.03,0
+base,022_1.wav,synonym,go to HR department,Go to HR department.,0,4,0.027,0
+base,023_1.wav,synonym,go to admin,Go to Admin.,0,3,0.021,0
+base,024_1.wav,synonym,go to director,Go to Director.,0,3,0.03,0
+base,025_1.wav,synonym,go to director general office,Go to Director office.,1,5,0.03,0
+base,026_1.wav,synonym,go to b o q,Go to BOQ.,3,5,0.019,1
+base,027_1.wav,multi_stop,go to home then lawn,"Go to Home, then Lawn.",0,5,0.024,1
+base,028_1.wav,multi_stop,go to robotics lab and then canteen,Go to Robotics and then 13.,2,7,0.027,0
+base,029_1.wav,multi_stop,take me to main gate then go to warehouse,Take me to Main Gate and go to warehouse.,1,9,0.028,0
+base,030_1.wav,multi_stop,"go to home, then lawn, then canteen","Go to home, then lawn, then continue.",1,7,0.027,0
+base,031_1.wav,multi_stop,go to lawn followed by store,Go to Lawn Follow-up High Store.,3,6,0.029,0
+base,032_1.wav,multi_stop,go to home after that go to lawn,"Go to Home after that, go to Lawn.",0,8,0.028,0
+base,033_1.wav,invalid,go to the moon,Go to the moon.,0,4,0.022,1
+base,034_1.wav,invalid,go to DG canteen,Go to DG Contain.,1,4,0.034,1
+base,035_1.wav,invalid,go to the gym,Go to DG.,2,4,0.025,1
+base,036_1.wav,invalid,take me to Paris,Take me to Paris.,0,4,0.026,1
+base,037_1.wav,invalid,go to Admin Block,Go to Admin Block.,0,4,0.028,1
+base,038_1.wav,invalid,"go to (10, 10)",Go to 10.n.,1,4,0.024,1
+base,039_1.wav,invalid,go to Robotics Lab 2,Go to Robotics Lab 2.,0,5,0.024,1
+small,001_1.wav,named,go to Home,Go to Home.,0,3,0.051,1
+small,002_1.wav,named,Go to Lawn.,Go to Lawn.,0,3,0.05,1
+small,003_1.wav,named,go to robotics lab,Go to Robotics Lab.,0,4,0.071,1
+small,004_1.wav,named,take me to Main Gate,Take me to Main Gate.,0,5,0.064,1
+small,005_1.wav,named,navigate to BOQ,Navigate to BOQ.,0,3,0.075,1
+small,006_1.wav,named,head to Canteen,Head-to-continue.,1,3,0.077,0
+small,007_1.wav,named,move to Software Lab,Move to Software Lab.,0,4,0.064,1
+small,008_1.wav,named,drive to Finance office,Drive to Finance office.,0,4,0.073,1
+small,009_1.wav,named,go to Warehouse,Go to warehouse.,0,3,0.066,1
+small,010_1.wav,named,go to Director office,Go to Director office.,0,4,0.069,1
+small,011_1.wav,named,take me to Quantum Lab,Take me to Quantum Lab.,0,5,0.075,1
+small,012_1.wav,named,go to MOQ,Go to MOQ.,0,3,0.071,1
+small,013_1.wav,named,go to Security Gate,Go to Security Gate.,0,4,0.064,1
+small,014_1.wav,named_filler,go to the lawn,Go to TLawn.,2,4,0.07,0
+small,015_1.wav,named_filler,please take me to the main gate,Please take me to the Main Gate.,0,7,0.076,0
+small,016_1.wav,named_filler,can you take me to the canteen please,Can you take me to the continue please?,1,8,0.085,0
+small,017_1.wav,named_filler,i want to go to the warehouse,I want to go to the warehouse.,0,7,0.073,0
+small,018_1.wav,named_filler,could you take me to the fire room,Would you take me to this fight room?,3,8,0.098,0
+small,019_1.wav,named_filler,take me to the robotics lab,Take me to the Robotics Lab.,0,6,0.068,0
+small,020_1.wav,synonym,take me to human resources,"Take me ute, take me ute to human resource.",5,5,0.073,0
+small,021_1.wav,synonym,go to hr,Go to HR.,0,3,0.049,0
+small,022_1.wav,synonym,go to HR department,Go to HR Department.,0,4,0.07,0
+small,023_1.wav,synonym,go to admin,Go to Admin.,0,3,0.065,0
+small,024_1.wav,synonym,go to director,Go to Director.,0,3,0.069,0
+small,025_1.wav,synonym,go to director general office,Go to Director General Office.,0,5,0.074,0
+small,026_1.wav,synonym,go to b o q,Go to BOQ.,3,5,0.072,1
+small,027_1.wav,multi_stop,go to home then lawn,"Go to Home, then Lawn.",0,5,0.073,1
+small,028_1.wav,multi_stop,go to robotics lab and then canteen,Go to Robotics and then 15.,2,7,0.077,0
+small,029_1.wav,multi_stop,take me to main gate then go to warehouse,"Take me to Main Gate then, go to warehouse.",0,9,0.079,0
+small,030_1.wav,multi_stop,"go to home, then lawn, then canteen","Go to Home, then Lawn, then Continue.",1,7,0.081,0
+small,031_1.wav,multi_stop,go to lawn followed by store,"Go to Lawn, follow it by store.",2,6,0.079,0
+small,032_1.wav,multi_stop,go to home after that go to lawn,Go to home after that. Go to Lawn.,0,8,0.081,0
+small,033_1.wav,invalid,go to the moon,Go to the moon.,0,4,0.05,1
+small,034_1.wav,invalid,go to DG canteen,Go to DGContinue.,2,4,0.062,1
+small,035_1.wav,invalid,go to the gym,Go to DG.,2,4,0.048,1
+small,036_1.wav,invalid,take me to Paris,Take me to Venice.,1,4,0.074,1
+small,037_1.wav,invalid,go to Admin Block,Go to Admin Blog.,1,4,0.065,1
+small,038_1.wav,invalid,"go to (10, 10)",Go to 10.10.,0,4,0.067,1
+small,039_1.wav,invalid,go to Robotics Lab 2,Go to Robotics Lab 2.,0,5,0.076,1
+large-v3,001_1.wav,named,go to Home,Go to home.,0,3,0.145,1
+large-v3,002_1.wav,named,Go to Lawn.,Go to Lawn.,0,3,0.152,1
+large-v3,003_1.wav,named,go to robotics lab,Go to Robotics Lab.,0,4,0.158,1
+large-v3,004_1.wav,named,take me to Main Gate,Take me to Main Gate.,0,5,0.169,1
+large-v3,005_1.wav,named,navigate to BOQ,Navigate to BOQ.,0,3,0.169,1
+large-v3,006_1.wav,named,head to Canteen,Head to Contain.,1,3,0.148,0
+large-v3,007_1.wav,named,move to Software Lab,Move to Software Lab.,0,4,0.163,1
+large-v3,008_1.wav,named,drive to Finance office,Drive to Finance Office.,0,4,0.154,1
+large-v3,009_1.wav,named,go to Warehouse,Go to where house?,2,3,0.158,0
+large-v3,010_1.wav,named,go to Director office,Go to Director Office.,0,4,0.157,1
+large-v3,011_1.wav,named,take me to Quantum Lab,Take me to Quantum Lab.,0,5,0.165,1
+large-v3,012_1.wav,named,go to MOQ,Go to MOQ.,0,3,0.157,1
+large-v3,013_1.wav,named,go to Security Gate,Go to security gate.,0,4,0.157,1
+large-v3,014_1.wav,named_filler,go to the lawn,Go to the lawn.,0,4,0.18,0
+large-v3,015_1.wav,named_filler,please take me to the main gate,Please take me to the main gate.,0,7,0.186,0
+large-v3,016_1.wav,named_filler,can you take me to the canteen please,"Can you take me to the canteen, please?",0,8,0.199,0
+large-v3,017_1.wav,named_filler,i want to go to the warehouse,I want to go to the warehouse.,0,7,0.19,0
+large-v3,018_1.wav,named_filler,could you take me to the fire room,Would you take me to the fire room?,1,8,0.186,0
+large-v3,019_1.wav,named_filler,take me to the robotics lab,Take me to the robotics lab.,0,6,0.181,0
+large-v3,020_1.wav,synonym,take me to human resources,"Take me to the, take me to human resource.",5,5,0.204,0
+large-v3,021_1.wav,synonym,go to hr,Go to HR.,0,3,0.148,0
+large-v3,022_1.wav,synonym,go to HR department,Go to HR department.,0,4,0.152,0
+large-v3,023_1.wav,synonym,go to admin,Go to Admin.,0,3,0.15,0
+large-v3,024_1.wav,synonym,go to director,Go to Director.,0,3,0.147,0
+large-v3,025_1.wav,synonym,go to director general office,Go to Director General Office.,0,5,0.16,0
+large-v3,026_1.wav,synonym,go to b o q,Go to BOQ.,3,5,0.152,1
+large-v3,027_1.wav,multi_stop,go to home then lawn,Go to Home then Lawn.,0,5,0.173,1
+large-v3,028_1.wav,multi_stop,go to robotics lab and then canteen,Go to Robotics and then continue.,2,7,0.178,0
+large-v3,029_1.wav,multi_stop,take me to main gate then go to warehouse,Take me to main gate then go to warehouse.,0,9,0.194,1
+large-v3,030_1.wav,multi_stop,"go to home, then lawn, then canteen","Go to Home, then Lawn, then Contain.",1,7,0.198,0
+large-v3,031_1.wav,multi_stop,go to lawn followed by store,Go to Lawn followed by Store.,0,6,0.175,1
+large-v3,032_1.wav,multi_stop,go to home after that go to lawn,Go to home after that go to lawn.,0,8,0.189,1
+large-v3,033_1.wav,invalid,go to the moon,Go to the moon.,0,4,0.16,1
+large-v3,034_1.wav,invalid,go to DG canteen,Go to DG Contain.,1,4,0.171,1
+large-v3,035_1.wav,invalid,go to the gym,Go to DG.,2,4,0.149,1
+large-v3,036_1.wav,invalid,take me to Paris,Take me to Paris.,0,4,0.159,1
+large-v3,037_1.wav,invalid,go to Admin Block,Go to Admin Blocks.,1,4,0.162,1
+large-v3,038_1.wav,invalid,"go to (10, 10)",Go to 10.10,0,4,0.163,1
+large-v3,039_1.wav,invalid,go to Robotics Lab 2,Go to Robotics Lab 2.,0,5,0.165,1

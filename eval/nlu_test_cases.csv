@@ -1,0 +1,54 @@
+type,command,expected_intent,expected_target
+named,go to Home,navigate,Home
+named,Go to Lawn.,navigate,Lawn
+named,go to robotics lab,navigate,Robotics Lab
+named,take me to Main Gate,navigate,Main Gate
+named,navigate to BOQ,navigate,BOQ
+named,head to Canteen,navigate,Canteen
+named,move to Software Lab,navigate,Software Lab
+named,drive to Finance office,navigate,Finance office
+named,go to Warehouse,navigate,Warehouse
+named,go to Director office,navigate,Director office
+named,take me to Quantum Lab,navigate,Quantum Lab
+named,go to MOQ,navigate,MOQ
+named,go to Security Gate,navigate,Security Gate
+named_filler,go to the lawn,navigate,Lawn
+named_filler,please take me to the main gate,navigate,Main Gate
+named_filler,can you take me to the canteen please,navigate,Canteen
+named_filler,i want to go to the warehouse,navigate,Warehouse
+named_filler,could you take me to the fire room,navigate,Fire Room
+named_filler,take me to the robotics lab,navigate,Robotics Lab
+synonym,take me to human resources,navigate,HR office
+synonym,go to hr,navigate,HR office
+synonym,go to HR department,navigate,HR office
+synonym,go to admin,navigate,Admin Office
+synonym,go to director,navigate,Director office
+synonym,go to director general office,navigate,DG Office
+synonym,go to b o q,navigate,BOQ
+coordinates,"go to (1.0, 2.0)",navigate,"1.0,2.0"
+coordinates,"go to 3, 1",navigate,"3,1"
+coordinates,"navigate to (0.5, 2.5)",navigate,"0.5,2.5"
+coordinates,"move to (7.5, 0.5)",navigate,"7.5,0.5"
+coordinates,"go to 4.0 , 2.0",navigate,"4.0,2.0"
+coordinates,go to x 1.0 y 2.0,navigate,"1.0,2.0"
+multi_stop,go to home then lawn,navigate,Home|Lawn
+multi_stop,go to robotics lab and then canteen,navigate,Robotics Lab|Canteen
+multi_stop,take me to main gate then go to warehouse,navigate,Main Gate|Warehouse
+multi_stop,"go to home, then lawn, then canteen",navigate,Home|Lawn|Canteen
+multi_stop,go to lawn followed by store,navigate,Lawn|Store
+multi_stop,go to home after that go to lawn,navigate,Home|Lawn
+invalid,go to the moon,navigate,NONE
+invalid,go to DG canteen,navigate,NONE
+invalid,go to the gym,navigate,NONE
+invalid,take me to Paris,navigate,NONE
+invalid,go to Admin Block,navigate,NONE
+invalid,"go to (10, 10)",navigate,NONE
+invalid,go to Robotics Lab 2,navigate,NONE
+chat,what is your name,chat,
+chat,how are you,chat,
+chat,where am i,chat,
+chat,can you tell me a joke,chat,
+chat,thanks,chat,
+chat,who is the director,chat,
+chat,tell me about the robotics lab,chat,
+chat,what time is it,chat,

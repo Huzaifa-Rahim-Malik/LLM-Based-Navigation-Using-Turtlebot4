@@ -1,0 +1,40 @@
+file,reference,type,expected_intent,expected_target
+001_1.wav,go to Home,named,navigate,Home
+002_1.wav,Go to Lawn.,named,navigate,Lawn
+003_1.wav,go to robotics lab,named,navigate,Robotics Lab
+004_1.wav,take me to Main Gate,named,navigate,Main Gate
+005_1.wav,navigate to BOQ,named,navigate,BOQ
+006_1.wav,head to Canteen,named,navigate,Canteen
+007_1.wav,move to Software Lab,named,navigate,Software Lab
+008_1.wav,drive to Finance office,named,navigate,Finance office
+009_1.wav,go to Warehouse,named,navigate,Warehouse
+010_1.wav,go to Director office,named,navigate,Director office
+011_1.wav,take me to Quantum Lab,named,navigate,Quantum Lab
+012_1.wav,go to MOQ,named,navigate,MOQ
+013_1.wav,go to Security Gate,named,navigate,Security Gate
+014_1.wav,go to the lawn,named_filler,navigate,Lawn
+015_1.wav,please take me to the main gate,named_filler,navigate,Main Gate
+016_1.wav,can you take me to the canteen please,named_filler,navigate,Canteen
+017_1.wav,i want to go to the warehouse,named_filler,navigate,Warehouse
+018_1.wav,could you take me to the fire room,named_filler,navigate,Fire Room
+019_1.wav,take me to the robotics lab,named_filler,navigate,Robotics Lab
+020_1.wav,take me to human resources,synonym,navigate,HR office
+021_1.wav,go to hr,synonym,navigate,HR office
+022_1.wav,go to HR department,synonym,navigate,HR office
+023_1.wav,go to admin,synonym,navigate,Admin Office
+024_1.wav,go to director,synonym,navigate,Director office
+025_1.wav,go to director general office,synonym,navigate,DG Office
+026_1.wav,go to b o q,synonym,navigate,BOQ
+027_1.wav,go to home then lawn,multi_stop,navigate,Home|Lawn
+028_1.wav,go to robotics lab and then canteen,multi_stop,navigate,Robotics Lab|Canteen
+029_1.wav,take me to main gate then go to warehouse,multi_stop,navigate,Main Gate|Warehouse
+030_1.wav,"go to home, then lawn, then canteen",multi_stop,navigate,Home|Lawn|Canteen
+031_1.wav,go to lawn followed by store,multi_stop,navigate,Lawn|Store
+032_1.wav,go to home after that go to lawn,multi_stop,navigate,Home|Lawn
+033_1.wav,go to the moon,invalid,navigate,NONE
+034_1.wav,go to DG canteen,invalid,navigate,NONE
+035_1.wav,go to the gym,invalid,navigate,NONE
+036_1.wav,take me to Paris,invalid,navigate,NONE
+037_1.wav,go to Admin Block,invalid,navigate,NONE
+038_1.wav,"go to (10, 10)",invalid,navigate,NONE
+039_1.wav,go to Robotics Lab 2,invalid,navigate,NONE

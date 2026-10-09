@@ -364,29 +364,30 @@ More ROS 2 commands (SLAM, map saving, docking, reverse-motion override): [`docs
 
 ## Results
 
-> Replace every `__` with a number you measured. Report N and the test conditions. Small honest samples are better
-> than large unverified claims.
+Test setup: TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy, map maps/robotic_arena.yaml, __ named goals, PC: __ CPU / __ GPU / __ GB RAM, LLM llama3.2:3b, Whisper base, small and large-v3. Evaluated on 9 October 2026. All raw results are in eval/results/.
 
-**Test setup:** TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy, map `maps/robotic_arena.yaml`, __ named goals,
-PC: __ CPU / __ GPU / __ GB RAM, LLM `llama3.2:3b`, Whisper `__`.
+1. Navigation success
 
-**1. Navigation success** (N = __ commands, __ goals, __ runs each)
+Language understanding was tested on text, so speech errors do not mix with understanding errors (N = 45 navigation commands and 8 chat messages, 53 in total, from eval/nlu_test_cases.csv). "Rules only" uses no LLM. "Rules + LLM" lets llama3.2:3b decide when the rules cannot resolve a target. Robot runs (reaching the goal) are __ runs per command, same start pose each time.
 
-| Command type | Example | Understood correctly | Reached goal | Notes |
-|---|---|---|---|---|
-| Named location | "go to the lawn" | __ / __ | __ / __ | |
-| Synonym | "take me to human resources" | __ / __ | __ / __ | |
-| Coordinates | "go to x 1.0 y 2.0" | __ / __ | __ / __ | |
-| Multi-stop | "go to home then lawn" | __ / __ | __ / __ | |
-| Invalid / unknown place | "go to the moon" | correctly rejected __ / __ | n/a | |
+Command type	Example	N	Understood: rules only	Understood: rules + LLM	Reached goal	Notes
+Named location	"go to the lawn"	13	13 / 13	13 / 13	__ / __	
+Named + filler words	"can you take me to the canteen please"	6	0 / 6	5 / 6	__ / __	LLM fallback needed
+Synonym	"take me to human resources"	7	0 / 7	3 / 7	__ / __	LLM fallback needed
+Coordinates	"go to x 1.0 y 2.0"	6	5 / 6	5 / 6	__ / __	x .. y .. form not parsed
+Multi-stop	"go to home then lawn"	6	6 / 6	6 / 6	__ / __	
+Invalid / unknown place	"go to the moon"	7	correctly rejected 7 / 7	correctly rejected 7 / 7	n/a	no goal sent
+Chat (not navigation)	"what is your name"	8	8 / 8	8 / 8	n/a	
+All commands		53	39 / 53 (74 %)	47 / 53 (89 %)		
 
-**2. Speech recognition** (N = __ spoken commands per model, quiet room)
+2. Speech recognition (N = 39 spoken commands per model, quiet room, GPU)
 
-| Whisper model | Word error rate | Command understood | Transcription time (s) |
-|---|---|---|---|
-| `base` | __ % | __ / __ | __ |
-| `small` | __ % | __ / __ | __ |
-| `large-v3` | __ % | __ / __ | __ |
+Whisper model	Word error rate	Command understood	Transcription time (s)
+base	16.0 %	20 / 39	0.03
+small	13.9 %	21 / 39	0.07
+large-v3	10.2 %	23 / 39	0.17
+
+Word error rate is the share of reference words that are wrong. "Command understood" means the transcript resolved to the right target (or, for invalid places, was rejected). Transcription time is the mean per clip, warm-up excluded. By command type, plain named commands work well on every model (11 to 12 of 13, word error rate 2 to 6 %), and all invalid places are rejected (7 / 7). The failures are almost all in filler-word commands (0 / 6 on every model) and synonyms (1 / 7 on every model). The transcripts of those are close to perfect (filler word error rate 2.5 % on large-v3), so the cause is in the language-understanding rules, not in the speech recognition.
 
 **3. End-to-end latency** (mean of __ runs; CPU vs GPU)
 

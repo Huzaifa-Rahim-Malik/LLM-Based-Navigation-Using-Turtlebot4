@@ -1,0 +1,4 @@
+# One row per physical robot trial. understood / reached are 1 or 0. For type 'invalid' use expected_target NONE.
+# start_to_goal_s = seconds from goal accepted to the robot stopping at the goal. Delete these comment lines' examples when you start.
+# example row (ignored):  named,go to Lawn,Lawn,1,1,<seconds>,
+type,command,expected_target,understood,reached,start_to_goal_s,failure_note

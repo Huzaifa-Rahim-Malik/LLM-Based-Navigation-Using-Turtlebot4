@@ -1,0 +1,5 @@
+model,device,fallback_correct,fallback_total,fallback_mean_s,chat_mean_s,chat_sd_s,tokens_per_s,ollama_ps,vram_used_mb
+llama3.2:3b,CPU,8,8,0.69,2.55,0.2,28.3,2.5 GB (100% CPU),567
+llama3.2:3b,GPU,8,8,0.1,0.69,1.06,249.5,2.8 GB (100% GPU),3461
+llama3.1:8b,CPU,8,8,1.03,5.28,0.53,12.8,5.2 GB (100% CPU),543
+llama3.1:8b,GPU,8,8,0.09,0.64,0.04,119.5,5.5 GB (100% GPU),6014
