@@ -27,7 +27,7 @@ Everything runs **locally** – speech recognition, LLM inference and text-to-sp
 ## Architecture
 
 The system starts in **two steps**. First the robot stack is brought up with `scripts/robot_launch.sh`
-(together with the robot's starting position). Then the assistant (`src/gui.py` for the terminal)
+(together with the robot's starting position). Then the assistant GUI (`src/gui.py`)
 is started and talks to that running stack.
 
 ```mermaid
@@ -48,7 +48,7 @@ flowchart TB
           MIC[Microphone] --> STT[Whisper STT]
         end
         subgraph IN2["Input type II — Text"]
-          TXT["GUI / terminal chat"]
+          TXT["GUI chat"]
         end
       end
       STT --> INT["Intent detector<br/>rule-based"]
@@ -71,8 +71,7 @@ flowchart TB
 1. **Input.** The user types in the GUI, or speaks. In the GUI, speech is push-to-talk: the user presses the mic
    button to start and presses it again to tell the system the command has ended. `sounddevice` records from the USB
    microphone at 48 kHz, the audio is resampled to 16 kHz with `scipy`, and Whisper transcribes it locally (CUDA fp16
-   if a GPU is present, otherwise CPU int8). Terminal voice mode has no button, so it uses voice-activity detection
-   to end the recording instead.
+   if a GPU is present, otherwise CPU int8).
 2. **Intent detection** (`intent_detector.py`). Fast rule-based matching decides *navigate* vs *chat* from trigger
    phrases ("go to", "take me to", ...) and question prefixes ("what", "can you", ...). No LLM call is needed, so
    the decision is instant and deterministic.
@@ -207,25 +206,14 @@ It runs on CUDA in fp16 when a GPU is available, otherwise on CPU in int8.
 ("Could not understand audio"), nothing is sent to the assistant, and the status returns to *Ready*. Press the mic
 button again to record a new command.
 
-**Terminal voice mode** (`main.py`) has no button, so it uses automatic voice-activity detection instead: four
-sensitivity levels (`--sensitivity`), recording stops after about 1.5 s of silence, and recordings shorter than
-0.3 s are discarded.
-
 **How the speech-to-text component works**
 
 ```mermaid
 flowchart TB
-    subgraph G["GUI voice mode — push-to-talk"]
+    subgraph G["GUI voice input — push-to-talk (src/gui.py)"]
       direction LR
       B1["Press mic button<br/>start recording"] --> B2["Speak<br/>mic at native 48 kHz"]
       B2 --> B3["Press stop button<br/>= end of command"]
-    end
-
-    subgraph T["Terminal voice mode — automatic"]
-      direction LR
-      C1["Record with voice activity detection<br/>4 sensitivity levels"] --> C2{"About 1.5 s<br/>of silence?"}
-      C2 -- no --> C1
-      C2 -- yes --> C3{"Longer than<br/>0.3 s?"}
     end
 
     subgraph P["Processing in voice_input.py"]
@@ -238,17 +226,15 @@ flowchart TB
     end
 
     B3 --> P1
-    C3 -- yes --> P1
     P6 --> OUT["Transcript sent to<br/>the intent detector"]
 
-    C3 -- no --> D
     P2 -- yes --> D
     P5 -- yes --> D
     D["Discard and show warning<br/>Could not understand audio"] --> W["Status back to Ready<br/>press mic button to try again"]
     W -.-> B1
 ```
 
-Choose the size with `--voice-model` (code default `large-v3`; `base` is a good CPU choice):
+Choose the size when starting the GUI, for example `python3 gui.py --voice-model base` (default `large-v3`; `base` is a good CPU choice):
 
 | Model | Parameters | Size* | Typical use |
 |---|---|---|---|
@@ -312,8 +298,8 @@ Check your own with `ollama list`.
 
 ```
 src/                     Application (run from this directory)
-  main.py                  Terminal entry point (voice or text)
-  gui.py                   GUI: chat + locations + controls + sensor plots
+  gui.py                   GUI: chat + voice + locations + controls + sensor plots (main entry point)
+  main.py                  Optional terminal entry point (see `python3 main.py --help`)
   chat_interface.py        Chat loop, threading, multi-stop queue
   intent_detector.py       navigate-vs-chat classification
   location_extractor.py    Named / coordinate / LLM-fallback target extraction
@@ -323,13 +309,27 @@ src/                     Application (run from this directory)
   voice_input.py           Whisper STT
   voice_output.py          Piper TTS -> PipeWire/Bluetooth
   locations.yaml           Named goals in map coordinates
-maps/                    Saved occupancy maps (SLAM output)
+maps/                    Saved occupancy maps (.pgm + .yaml): robotic_arena, map_1, indoor_map, gallery_map
 scripts/
   robot_launch.sh          Step 1: SLAM/localization + initial pose + Nav2 + RViz
   setup.bash               ROS 2 environment for the assistant terminal
   install_voice.sh         Voice (STT) dependencies
   install_piper.sh         Piper TTS + voice model
+eval/                    Evaluation kit that produced the Results section (see eval/README.md)
+  nlu_test_cases.csv       53 test commands with expected answers
+  eval_nlu.py              Language-understanding test (rules only / rules + LLM)
+  record_samples.py        Records the spoken test set
+  eval_stt.py              Speech-recognition test (word error rate, time)
+  eval_llm.py              LLM comparison (accuracy, speed, memory)
+  make_latency_csv.py      Collects latency measurements into one CSV
+  summarize.py             Turns trial CSVs into README tables
+  optional_rule_fix.patch  Optional patch for the rule-based matching
+  stt_samples/             39 recorded WAV files + manifest.csv
+  results/                 Raw results (CSV) behind every table below
+Results/                 GUI screenshot and demo recordings (GIF / MP4)
 docs/                    ROS 2 / Nav2 command cheat-sheet
+requirements.txt         Python dependencies
+LICENSE                  MIT
 ```
 
 
@@ -357,24 +357,27 @@ ollama pull llama3.2:3b
 source scripts/setup.bash           # ROS 2 Jazzy, domain 23, Fast DDS profile
 cd src                              # run from src/ so locations.yaml is found
 python3 gui.py                      # GUI (chat + voice + sensor plots)
+# python3 gui.py --voice-model base   # optional: smaller, faster Whisper model
 ```
 
 Edit `src/locations.yaml` to define your own named goals .
 More ROS 2 commands (SLAM, map saving, docking, reverse-motion override): [`docs/turtlebot4_commands.md`](docs/turtlebot4_commands.md).
 
-# Results
+## Results
 
-**Test setup:** TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy, map `maps/robotic_arena.yaml`, 21 named goals.
+**Test setup:** the language, speech and LLM tests below were run offline on a PC, with no robot involved, using the
+21 named goals in `src/locations.yaml` (map `maps/robotic_arena.yaml`; TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy).
 
 **PC specifications:**
 - CPU: Intel Core i9-14900KF
 - GPU: NVIDIA GeForce RTX 4070 Ti SUPER (16 GB)
 - RAM: 62 GB
-- LLM: `llama3.2:3b`
-- Speech recognition: Whisper `base`, `small`, and `large-v3`
-- Raw results: `eval/results/`
 
-## 1. Navigation Success
+**Models:** LLM `llama3.2:3b` (and `llama3.1:8b` in the LLM comparison); Whisper `base`, `small` and `large-v3`.
+
+**Raw results:** `eval/results/`
+
+### 1. Language Understanding (text input)
 
 Language understanding was tested using text input to separate language-understanding errors from speech-recognition errors. The dataset contains 45 navigation commands and 8 chat messages (53 total), from `eval/nlu_test_cases.csv`.
 
@@ -382,18 +385,18 @@ Language understanding was tested using text input to separate language-understa
 - **Rules + LLM:** `llama3.2:3b` handles targets that the rules cannot resolve.
 
 
-| Command Type | Example | N | Rules Only | Rules + LLM | 
-|---|---|---:|---:|---:|
-| Named location | `go to the lawn` | 13 | 13/13 | 13/13 | __ / __ | |
-| Named + filler words | `can you take me to the canteen please` | 6 | 0/6 | 5/6 | __ / __ | LLM fallback needed |
-| Synonym | `take me to human resources` | 7 | 0/7 | 3/7 | __ / __ | LLM fallback needed |
-| Coordinates | `go to x 1.0 y 2.0` | 6 | 5/6 | 5/6 | __ / __ | x/y form not parsed |
-| Multi-stop | `go to home then lawn` | 6 | 6/6 | 6/6 | __ / __ | |
-| Invalid / unknown place | `go to the moon` | 7 | Rejected 7/7 | Rejected 7/7 | N/A | No goal sent |
-| Chat (not navigation) | `what is your name` | 8 | 8/8 | 8/8 | N/A | |
-| **All commands** | — | **53** | **39/53 (74%)** | **47/53 (89%)** | — | |
+| Command type | Example | N | Rules only | Rules + LLM | Notes |
+|---|---|---:|---:|---:|---|
+| Named location | `go to robotics lab` | 13 | 13/13 | 13/13 | |
+| Named + filler words | `can you take me to the canteen please` | 6 | 0/6 | 5/6 | LLM fallback needed; `could you take me to the fire room` never reached the LLM |
+| Synonym | `go to hr` | 7 | 0/7 | 3/7 | LLM resolved the one-word synonyms; synonyms inside a sentence (`take me to human resources`) failed |
+| Coordinates | `go to (1.0, 2.0)` | 6 | 5/6 | 5/6 | `x 1.0 y 2.0` form not parsed |
+| Multi-stop | `go to home then lawn` | 6 | 6/6 | 6/6 | |
+| Invalid / unknown place | `go to the moon` | 7 | Rejected 7/7 | Rejected 7/7 | No goal sent |
+| Chat (not navigation) | `what is your name` | 8 | 8/8 | 8/8 | Correctly classified as chat |
+| **All commands** | | **53** | **39/53 (74%)** | **47/53 (89%)** | |
 
-## 2. Speech Recognition
+### 2. Speech Recognition
 
 **Test conditions:** 39 spoken commands per model, quiet room, GPU acceleration.
 
@@ -403,38 +406,38 @@ Language understanding was tested using text input to separate language-understa
 | `small` | 13.9% | 21/39 | 0.07 |
 | `large-v3` | 10.2% | 23/39 | 0.17 |
 
-Word error rate (WER) is the proportion of reference words that were incorrectly transcribed. A command is considered understood if the transcript resolves to the correct target or an invalid location is correctly rejected. Transcription time is the mean per clip, excluding warm-up.
+Word error rate (WER) is the proportion of reference words that were incorrectly transcribed. A command is considered understood if the transcript resolves to the correct target or an invalid location is correctly rejected. Transcription time is the mean per clip, excluding warm-up. The LLM fallback was not used in this test, so the figures are comparable to the "Rules only" column of the text test.
 
-### Observations
+#### Observations
 
 - Plain named-location commands performed well across all models, with 11–12 of 13 commands understood and WER between 2% and 6%.
 - All invalid locations were correctly rejected (7/7).
 - Filler-word commands failed on all models (0/6), while synonyms were understood in only 1/7 cases per model.
 - The transcripts for filler-word commands were nearly perfect. For `large-v3`, the filler-word WER was 2.5%, suggesting that the main limitation is language understanding rather than speech recognition.
 
-## 3. End-to-End Latency (CPU vs. GPU)
+### 3. End-to-End Latency (CPU vs. GPU)
 
 | Stage | CPU | GPU |
 |---|---:|---:|
 | Speech to text (`large-v3`, mean of 39 clips) | 4.05 s (std 0.12) | 0.17 s (std 0.02) |
-| Intent and location extraction (rules, median of 45) | 0.014 ms | 0.015 ms |
+| Intent and location extraction (rules, median of 45) | 0.016 ms | 0.016 ms |
 | LLM fallback (median of 7 warm calls) | 0.38 s | 0.10 s |
 | LLM first call after startup (model loading included) | 17.95 s | 24.41 s |
 
 
-### Latency Notes
+#### Latency Notes
 
-The rule-based processing path takes approximately 0.015 ms, making it effectively instantaneous. Therefore, LLM latency affects only commands that require fallback processing.
+The rule-based processing path takes approximately 0.016 ms, making it effectively instantaneous. Therefore, LLM latency affects only commands that require fallback processing.
 The first LLM call after application startup or switching between CPU and GPU takes approximately 18–24 seconds because the model must be loaded. These calls are excluded from the warm-call averages.
 
 
-## 4. LLM Comparison
+### 4. LLM Comparison
 
 Both models were evaluated using:
 - 8 fallback location commands that the rules could not resolve and that passed the LLM guard.
 - 10 short chat questions using the same prompt template as the application.
 
-Times exclude the initial model-loading call.
+Times exclude the initial model-loading call. Fallback time is the mean of the 8 commands; the latency table above gives the median of warm calls, so the CPU values differ.
 
 **Source:** `eval/results/llm_comparison.csv`
 
@@ -447,9 +450,9 @@ Times exclude the initial model-loading call.
 
 GPU memory usage includes approximately 0.55 GB used by other processes. The high standard deviation in the `llama3.2:3b` GPU chat time indicates one unusually slow call among the 10 questions.
 
-## 5. Observed Failure Cases
+### 5. Observed Failure Cases
 
-### 5.1 Filler Words and Synonyms
+#### 5.1 Filler Words and Synonyms
 
 The rule-based system failed to resolve all 6 filler-word commands and all 7 synonym commands.
 
@@ -461,7 +464,7 @@ Examples include:
 
 The LLM fallback resolved 8 of these 13 cases.
 
-### 5.2 Commands Not Passed to the LLM
+#### 5.2 Commands Not Passed to the LLM
 
 Six cases failed even with the LLM available because the rule-based guard did not pass them to the fallback:
 
@@ -472,25 +475,25 @@ Six cases failed even with the LLM available because the rule-based guard did no
 - `go to b o q`
 - `go to x 1.0 y 2.0`
 
-These failures indicate that the fallback guard needs to be improved so that unresolved commands can reach the LLM.
+These failures indicate that command normalization (polite prefixes such as `could you`, synonyms inside a sentence, coordinate formats) and the fallback guard need to be improved so that these commands are resolved.
 
-### 5.3 Multi-Stop Voice Commands
+#### 5.3 Multi-Stop Voice Commands
 
 Multi-stop commands achieved 6/6 successful resolutions using text input. For spoken commands, the success rate was:
 - `base`: 1/6
 - `small`: 1/6
 - `large-v3`: 4/6
 
-Commands containing altered connectors, such as `and go to warehouse` or `then, go to warehouse`, were not consistently resolved.
+Most spoken failures came from the connector word or the second location being mis-transcribed: for example `and then canteen` became `and then continue`, `then canteen` became `then Contain`, and with `base` `then go to warehouse` was sometimes transcribed as `and go to warehouse`.
 
-### 5.4 Short or Low-Energy Audio Clips
+#### 5.4 Short or Low-Energy Audio Clips
 
 Speech recognition occasionally generated hallucinated text, such as `Thank you`, from short or low-energy recordings. This motivated the silence and hallucination checks implemented in `voice_input.py`.
 
-## 6. Key Takeaways
+### 6. Key Takeaways
 
 - **Language understanding:** Adding the LLM fallback increased text understanding from 74% (39/53) to 89% (47/53).
-- **Fallback latency:** The LLM adds approximately 0.4 seconds per fallback call in the full language-understanding test.
+- **Fallback latency:** The LLM adds approximately 0.4 seconds per fallback call on CPU (about 0.1 seconds on GPU) in the full language-understanding test.
 - **Invalid locations:** The system correctly rejected all 7 invalid-location commands in the text test.
 - **Speech recognition:** Whisper `large-v3` on GPU achieved the lowest WER (10.2%) and an average transcription time of approximately 0.17 seconds.
 - **LLM selection:** Both `llama3.2:3b` and `llama3.1:8b` resolved all 8 fallback commands. The larger model showed no accuracy improvement in this test.
@@ -518,7 +521,9 @@ Overall, the results indicate that the main limitation is the rule-based languag
 ## Known limitations
 - Locations and the 8 x 3 m map bounds are specific to the original lab setup (`src/locations.yaml`, `MAP_BOUNDS` in `location_extractor.py`).
 - Code was developed against specific audio hardware (USB mic at 48 kHz, PipeWire Bluetooth sink).
-- Single-robot only; no automated tests yet.
+- Single-robot only.
+- The robot-side navigation success rate was not measured quantitatively; the demo recordings above show real runs. The trial sheet is in `eval/navigation_trials_template.csv`.
+- No unit tests; the evaluation scripts in `eval/` test language understanding, speech recognition and the LLM.
 
 ## License
 
