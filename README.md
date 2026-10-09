@@ -16,8 +16,7 @@ Everything runs **locally** – speech recognition, LLM inference and text-to-sp
   fuzzy location matching with a strict token-coverage guard to avoid sending the robot to the wrong location;
   a local LLM (Ollama) is used as a fallback for requests the rules can't resolve.
 - **Conversational LLM** – chat stays live *while the robot is navigating*; arrival is announced contextually.
-- **Voice in / voice out** – Whisper / faster-whisper speech-to-text with resampling for USB microphones,
-  and Piper neural TTS routed to a Bluetooth speaker (auto-detected PipeWire sink).
+- **Voice in / voice out** – Whisper (speech-to-text) with resampling for USB microphones, and Piper neural TTS routed to a Bluetooth speaker (auto-detected PipeWire sink).
 - **Runtime CPU/GPU and model switching** – the GUI lets you pick the Ollama model and CPU vs. GPU inference on the fly.
 - **One-command robot bring-up** – `scripts/robot_launch.sh` starts SLAM or localization, sets the robot's initial
   pose, and launches Nav2 and RViz.
@@ -77,7 +76,7 @@ flowchart TB
    the decision is instant and deterministic.
 3. **Chat path.** Chat messages go to a local LLM through Ollama (`response_generator.py`).
 4. **Navigation path** (`location_extractor.py`). The target is resolved in this order:
-   raw coordinates -> named location in `locations.yaml` (with synonyms and fuzzy matching) -> LLM fallback.
+   raw coordinates -> named location in `locations.yaml`-> LLM fallback.
    A token-coverage guard (at least 75 % of the meaningful words must match) rejects near-misses. Commands like "go to home then lawn" become an ordered queue, and goals are checked against the map bounds.
 5. **Navigation** (`robot_navigator.py`). Each goal is sent to Nav2 as a `NavigateToPose` action through
    `BasicNavigator`, in the `map` frame. The pose comes from AMCL (`/amcl_pose`). A dedicated ROS executor thread
@@ -184,27 +183,21 @@ ollama pull llama3.2:3b      # pull any of the others the same way
 
 ### Speech-to-text (STT) — Whisper
 
-`src/voice_input.py` transcribes speech locally with **faster-whisper** (OpenAI Whisper weights, CTranslate2 runtime;
-`openai-whisper` is the fallback).
+`src/voice_input.py` transcribes speech locally using **faster-whisper** (CTranslate2), with `openai-whisper` as a fallback.
 
-**In the GUI, speech is push-to-talk.** Press the mic button to start recording (it turns red and shows a stop
-symbol), speak, then press it again. That second press is the command that the speech has ended, so no silence
-detection is needed and pauses or background noise cannot cut the command short. The recording (at the microphone's
-native 48 kHz) is then processed:
+**GUI push-to-talk:** Press the mic button to start recording (red with a stop symbol), speak, then press again to stop. No silence detection is needed, so pauses or background noise won't cut commands short.
 
-1. resampled to 16 kHz, the rate Whisper expects (this fixed garbled transcriptions);
-2. rejected if there is no signal at all (unplugged or dead microphone);
-3. volume-normalised, so quiet microphones still reach Whisper at a usable level;
-4. transcribed by Whisper in English, with a prompt that lists the known location names from `locations.yaml`, so
-   abbreviations such as "DG Office" or "BOQ" are preferred over similar-sounding English words;
-5. checked against known Whisper hallucinations on silence or noise ("thanks for watching", "please subscribe", ...);
-6. corrected for known mishearings of location names (for example "digi office" becomes "DG Office").
+Audio is processed as follows:
 
-It runs on CUDA in fp16 when a GPU is available, otherwise on CPU in int8.
+1. Resampled from native 48 kHz to Whisper's required 16 kHz.
+2. Checked for a valid audio signal and volume-normalised.
+3. Transcribed in English using known locations from `locations.yaml` to improve recognition of names like "DG Office" and "BOQ".
+4. Filtered for common hallucinations and corrected for known location-name mishearings.
 
-**If the recording is discarded** (no audio, no signal, a hallucination, or empty text), the GUI shows a warning
-("Could not understand audio"), nothing is sent to the assistant, and the status returns to *Ready*. Press the mic
-button again to record a new command.
+**Performance:** Uses CUDA with FP16 when a GPU is available; otherwise, CPU with INT8.
+
+**Error handling:** If audio is empty, has no signal, contains a hallucination, or produces no text, the GUI displays *"Could not understand audio"*, sends nothing to the assistant, and returns to *Ready* for a new recording.
+
 
 **How the speech-to-text component works**
 
@@ -353,7 +346,7 @@ More ROS 2 commands (SLAM, map saving, docking, reverse-motion override): [`docs
 
 ## Results
 
-**Test setup:** the language, speech and LLM tests below were run offline on a PC, with no robot involved, using the
+**Test setup:** The language, speech and LLM tests below were run offline on a PC, with no robot involved, using the
 21 named goals in `src/locations.yaml` (map `maps/robotic_arena.yaml`; TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy).
 
 **PC specifications:**
