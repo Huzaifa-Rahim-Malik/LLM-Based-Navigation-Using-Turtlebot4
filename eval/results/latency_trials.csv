@@ -91,7 +91,7 @@ cpu,rule_extraction,0.008,ms
 cpu,rule_extraction,0.008,ms
 cpu,rule_extraction,0.009,ms
 cpu,rule_extraction,0.019,ms
-cpu,llm_fallback,17.95,s
+cpu,llm_first_call,17.95,s
 cpu,rule_extraction,0.043,ms
 cpu,llm_fallback,0.439,s
 cpu,rule_extraction,0.048,ms
@@ -144,7 +144,7 @@ gpu,rule_extraction,0.009,ms
 gpu,rule_extraction,0.008,ms
 gpu,rule_extraction,0.009,ms
 gpu,rule_extraction,0.021,ms
-gpu,llm_fallback,24.412,s
+gpu,llm_first_call,24.412,s
 gpu,rule_extraction,0.048,ms
 gpu,llm_fallback,0.095,s
 gpu,rule_extraction,0.047,ms
