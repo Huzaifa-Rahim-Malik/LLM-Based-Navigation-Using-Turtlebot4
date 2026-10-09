@@ -209,29 +209,19 @@ button again to record a new command.
 **How the speech-to-text component works**
 
 ```mermaid
-flowchart TB
-    subgraph G["GUI voice input — push-to-talk (src/gui.py)"]
-      direction LR
-      B1["Press mic button<br/>start recording"] --> B2["Speak<br/>mic at native 48 kHz"]
-      B2 --> B3["Press stop button<br/>= end of command"]
-    end
+flowchart LR
+    A["Press mic button<br/>and speak<br/>(mic at 48 kHz)"] --> B["Press stop button<br/>= end of command"]
+    B --> C["Resample<br/>48 to 16 kHz"]
+    C --> D{"No audio or<br/>no signal?"}
+    D -- no --> E["Normalise volume<br/>Whisper, English<br/>prompt with known locations<br/>CUDA fp16 / CPU int8"]
+    E --> F{"Hallucination<br/>or empty text?"}
+    F -- no --> G["Fix known<br/>mishearings"]
+    G --> H["Transcript sent to<br/>the intent detector"]
 
-    subgraph P["Processing in voice_input.py"]
-      direction LR
-      P1["Resample<br/>48 to 16 kHz"] --> P2{"No audio or<br/>no signal?"}
-      P2 -- no --> P3["Normalise volume"]
-      P3 --> P4["Whisper, English<br/>prompt with known locations<br/>GPU: CUDA fp16 / CPU: int8"]
-      P4 --> P5{"Hallucination<br/>or empty text?"}
-      P5 -- no --> P6["Fix known mishearings<br/>digi office to DG Office"]
-    end
-
-    B3 --> P1
-    P6 --> OUT["Transcript sent to<br/>the intent detector"]
-
-    P2 -- yes --> D
-    P5 -- yes --> D
-    D["Discard and show warning<br/>Could not understand audio"] --> W["Status back to Ready<br/>press mic button to try again"]
-    W -.-> B1
+    D -- yes --> X["Discard and show warning<br/>Could not understand audio"]
+    F -- yes --> X
+    X --> Y["Status back to Ready<br/>press mic button to try again"]
+    Y -.-> A
 ```
 
 Choose the size when starting the GUI, for example `python3 gui.py --voice-model base` (default `large-v3`; `base` is a good CPU choice):
@@ -484,7 +474,7 @@ Multi-stop commands achieved 6/6 successful resolutions using text input. For sp
 - `small`: 1/6
 - `large-v3`: 4/6
 
-Most spoken failures came from the connector word or the second location being mis-transcribed: for example `and then canteen` became `and then continue`, `then canteen` became `then Contain`, and with `base` `then go to warehouse` was sometimes transcribed as `and go to warehouse`.
+Most spoken failures came from the connector word or the second location being mis-transcribed: for example `and then canteen` became `and then continue`, `then canteen` became `then then continue`, and with `base` `then go to warehouse` was sometimes transcribed as `and go to warehouse`.
 
 #### 5.4 Short or Low-Energy Audio Clips
 
