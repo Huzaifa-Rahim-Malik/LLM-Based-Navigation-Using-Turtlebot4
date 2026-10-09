@@ -1,7 +1,7 @@
 # Natural-Language Navigation for TurtleBot 4 
 
 A voice- and text-controlled navigation assistant for a **TurtleBot 4** running **ROS 2 Jazzy**, **SLAM Toolbox**
-and **Nav2**. You tell the robot where to go in plain language ("take me to the robotics lab, then the lawn"),
+and **Nav2**. You tell the robot where to go in plain language ("take me to the robotics lab"),
 a local LLM handles conversation and ambiguous requests, and Nav2 drives the robot there.
 
 Everything runs **locally** – speech recognition, LLM inference and text-to-speech need no cloud services.
@@ -13,7 +13,7 @@ Everything runs **locally** – speech recognition, LLM inference and text-to-sp
 - **Natural-language navigation** – named locations, synonyms ("HR", "human resources"), raw coordinates, and
   multi-stop requests (`go to home then lawn`) queued and executed in order.
 - **Hybrid intent + location understanding** – fast rule-based intent detection (navigate vs. chat) and
-  fuzzy location matching with a strict token-coverage guard to avoid sending the robot to the wrong room;
+  fuzzy location matching with a strict token-coverage guard to avoid sending the robot to the wrong location;
   a local LLM (Ollama) is used as a fallback for requests the rules can't resolve.
 - **Conversational LLM** – chat stays live *while the robot is navigating*; arrival is announced contextually.
 - **Voice in / voice out** – Whisper / faster-whisper speech-to-text with resampling for USB microphones,
