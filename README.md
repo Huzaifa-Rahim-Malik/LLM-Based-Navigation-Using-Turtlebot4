@@ -380,7 +380,7 @@ Language understanding was tested using text input to separate language-understa
 
 - **Rules only:** No LLM is used.
 - **Rules + LLM:** `llama3.2:3b` handles targets that the rules cannot resolve.
-- **Reached goal:** Each command is tested using the same starting pose for each run.
+
 
 | Command Type | Example | N | Rules Only | Rules + LLM | 
 |---|---|---:|---:|---:|
@@ -425,12 +425,8 @@ Word error rate (WER) is the proportion of reference words that were incorrectly
 ### Latency Notes
 
 The rule-based processing path takes approximately 0.015 ms, making it effectively instantaneous. Therefore, LLM latency affects only commands that require fallback processing.
-
 The first LLM call after application startup or switching between CPU and GPU takes approximately 18–24 seconds because the model must be loaded. These calls are excluded from the warm-call averages.
 
-One GPU call took 3.8 seconds, compared with a median of 0.10 seconds, indicating occasional latency spikes.
-
-The CPU fallback results differ between Sections 3 and 4 because they were obtained using separate test scripts. Section 3 reports the median of the full language-understanding run, whereas Section 4 reports the mean of a separate per-model test. The GPU results are approximately 0.10 seconds in both tests.
 
 ## 4. LLM Comparison
 
