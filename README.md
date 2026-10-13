@@ -250,8 +250,6 @@ flowchart LR
     STOP["Interrupt / stop"] -. "cancels speech" .-> Q
 ```
 
-\*Sizes are approximate. Larger models are more accurate but need more disk, RAM or VRAM and add latency.
-Check your own with `ollama list`.
 
 ## Main libraries
 
@@ -262,7 +260,7 @@ Check your own with `ollama list`.
 | Mapping | SLAM Toolbox | building and saving maps |
 | Robot | TurtleBot 4 packages | bringup, navigation and viz launch files |
 | LLM | `ollama` (Python client) | chat and location fallback |
-| Speech-to-text | `faster-whisper`, `openai-whisper`, `torch` | local transcription, GPU detection |
+| Speech-to-text |  `Whisper`, `torch` | local transcription, GPU detection |
 | Audio | `sounddevice`, `scipy`, `numpy` | mic capture, 48 -> 16 kHz resampling |
 | Text-to-speech | Piper, PipeWire (`paplay` / `pw-play`) | neural voice to Bluetooth speaker |
 | Geometry | `transforms3d` | yaw <-> quaternion conversion |
@@ -366,13 +364,13 @@ Language understanding was tested using text input to separate language-understa
 - **Rules + LLM:** `llama3.2:3b` handles targets that the rules cannot resolve.
 
 
-| Command type | Example | N | Rules only | Rules + LLM | Notes |
+| Command type | Example | No of Times | Rules only | Rules + LLM | Notes |
 |---|---|---:|---:|---:|---|
-| Named location | `go to robotics lab` | 13 | 13/13 | 13/13 | |
+| Named location | `go to robotics lab` | 13 | 13/13 | 13/13 | | -
 | Named + filler words | `can you take me to the canteen please` | 6 | 0/6 | 5/6 | LLM fallback needed; `could you take me to the fire room` never reached the LLM |
 | Synonym | `go to hr` | 7 | 0/7 | 3/7 | LLM resolved the one-word synonyms; synonyms inside a sentence (`take me to human resources`) failed |
 | Coordinates | `go to (1.0, 2.0)` | 6 | 5/6 | 5/6 | `x 1.0 y 2.0` form not parsed |
-| Multi-stop | `go to home then lawn` | 6 | 6/6 | 6/6 | |
+| Multi-stop | `go to home then lawn` | 6 | 6/6 | 6/6 | | -
 | Invalid / unknown place | `go to the moon` | 7 | Rejected 7/7 | Rejected 7/7 | No goal sent |
 | Chat (not navigation) | `what is your name` | 8 | 8/8 | 8/8 | Correctly classified as chat |
 | **All commands** | | **53** | **39/53 (74%)** | **47/53 (89%)** | |
@@ -394,7 +392,7 @@ Word error rate (WER) is the proportion of reference words that were incorrectly
 - Plain named-location commands performed well across all models, with 11–12 of 13 commands understood and WER between 2% and 6%.
 - All invalid locations were correctly rejected (7/7).
 - Filler-word commands failed on all models (0/6), while synonyms were understood in only 1/7 cases per model.
-- The transcripts for filler-word commands were nearly perfect. For `large-v3`, the filler-word WER was 2.5%, suggesting that the main limitation is language understanding rather than speech recognition.
+- The transcripts for filler-word commands were nearly perfect. For `large-v3`, the filler-word WER was 2.5%.
 
 ### 3. End-to-End Latency (CPU vs. GPU)
 

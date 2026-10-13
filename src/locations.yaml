@@ -15,7 +15,7 @@ locations:
     x: 1.0
     y: 0.0
     theta: 1.57
-  Predictive Lab:
+  Hardware Lab:
     x: 1.0
     y: 2.0
     theta: 0.0
@@ -39,7 +39,7 @@ locations:
     x: 3.0
     y: 3.0
     theta: 4.71
-  Quantum Lab:
+  Computer Lab:
     x: 4.0
     y: 0.0
     theta: 0.0
@@ -47,11 +47,11 @@ locations:
     x: 4.0
     y: 1.0
     theta: 0.0
-  Askari Bank:
+  Bank:
     x: 5.0
     y: 1.0
     theta: 0.0
-  BOQ:
+  Hostel:
     x: 5.0
     y: 3.0
     theta: 4.71
@@ -79,11 +79,11 @@ locations:
     x: 8.0
     y: 0.0
     theta: 3.14
-  MOQ:
+  Main Ground:
     x: 8.0
     y: 1.0
     theta: 3.14
-  DG Office:
+  Car Parking:
     x: 8.0
     y: 3.0
     theta: 3.14
