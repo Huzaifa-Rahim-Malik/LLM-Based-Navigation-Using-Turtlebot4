@@ -27,10 +27,7 @@ locations:
     x: 1.9
     y: 0.95
     theta: 0
-  # Physics:
-  #   x: 2.0
-  #   y: 2.0
-  #   theta: 0.0
+
   Software Lab:
     x: 2.99
     y: 0.0
