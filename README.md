@@ -6,7 +6,7 @@ a local LLM handles conversation and ambiguous requests, and Nav2 drives the rob
 
 Everything runs **locally** – speech recognition, LLM inference and text-to-speech need no cloud services.
 
-<p align="center"> <img src="Results/GUI.jpeg" alt="Monitoring GUI" width="800"><br><br> <img src="Results/Demo.gif" alt="Voice command to robot arrival demo" width="800"> </p>
+<p align="center"> <img src="Results/GUI.png" alt="Monitoring GUI" width="800"><br><br> <img src="Results/Demo.gif" alt="Voice command to robot arrival demo" width="800"> </p>
 
 ## Features
 
@@ -301,6 +301,8 @@ eval/                    Evaluation kit that produced the Results section (see e
   eval_stt.py              Speech-recognition test (word error rate, time)
   eval_llm.py              LLM comparison (accuracy, speed, memory)
   make_latency_csv.py      Collects latency measurements into one CSV
+  auto_nav_trials.py       Automated robot trials (sends commands, drives, logs reached / time / bumps)
+  navigation_trials_template.csv  Column layout of the robot-trial CSV
   summarize.py             Turns trial CSVs into README tables
   optional_rule_fix.patch  Optional patch for the rule-based matching
   stt_samples/             39 recorded WAV files + manifest.csv
@@ -344,15 +346,16 @@ More ROS 2 commands (SLAM, map saving, docking, reverse-motion override): [`docs
 
 ## Results
 
-**Test setup:** The language, speech and LLM tests below were run offline on a PC, with no robot involved, using the
-21 named goals in `src/locations.yaml` (map `maps/robotic_arena.yaml`; TurtleBot 4, Ubuntu 24.04, ROS 2 Jazzy).
+**Test setup:** The language, speech and LLM tests (sections 1-4) were run offline on a PC, with no robot involved,
+using the 21 named goals in `src/locations.yaml` (map `maps/robotic_arena.yaml`; TurtleBot 4, Ubuntu 24.04,
+ROS 2 Jazzy). The navigation trials (section 5) were run on the real TurtleBot 4 with the same `locations.yaml`.
 
 **PC specifications:**
 - CPU: Intel Core i9-14900KF
 - GPU: NVIDIA GeForce RTX 4070 Ti SUPER (16 GB)
 - RAM: 62 GB
 
-**Models:** LLM `llama3.2:3b` (and `llama3.1:8b` in the LLM comparison); Whisper `base`, `small` and `large-v3`.
+**Models:** LLM `llama3.2:3b` (plus `llama3.2:1b` and `llama3.1:8b` in the LLM comparison); Whisper `base`, `small` and `large-v3`.
 
 **Raw results:** `eval/results/`
 
@@ -412,7 +415,7 @@ The first LLM call after application startup or switching between CPU and GPU ta
 
 ### 4. LLM Comparison
 
-Both models were evaluated using:
+All three models were evaluated using:
 - 8 fallback location commands that the rules could not resolve and that passed the LLM guard.
 - 10 short chat questions using the same prompt template as the application.
 
@@ -422,6 +425,8 @@ Times exclude the initial model-loading call. Fallback time is the mean of the 8
 
 | Model | Device | Fallback Location Accuracy | Fallback Time (s) | Chat Reply Time (s) | Tokens/s | Model Memory | GPU Memory in Use |
 |---|---|---:|---:|---:|---:|---|---:|
+| `llama3.2:1b` | CPU | 7/8 | 0.39 | 1.55 ± 0.14 | 44.8 | 1.4 GB RAM | N/A |
+| `llama3.2:1b` | GPU | 5/8 | 0.09 | 0.25 ± 0.02 | 398.2 | 1.7 GB | 2.5 GB |
 | `llama3.2:3b` | CPU | 8/8 | 0.69 | 2.55 ± 0.20 | 28.3 | 2.5 GB RAM | N/A |
 | `llama3.2:3b` | GPU | 8/8 | 0.10 | 0.69 ± 1.06 | 249.5 | 2.8 GB | 3.5 GB |
 | `llama3.1:8b` | CPU | 8/8 | 1.03 | 5.28 ± 0.53 | 12.8 | 5.2 GB RAM | N/A |
@@ -429,9 +434,58 @@ Times exclude the initial model-loading call. Fallback time is the mean of the 8
 
 GPU memory usage includes approximately 0.55 GB used by other processes. The high standard deviation in the `llama3.2:3b` GPU chat time indicates one unusually slow call among the 10 questions.
 
-### 5. Observed Failure Cases
+The smallest model, `llama3.2:1b`, is the fastest but the least reliable. Its misses were wrong-location answers, not
+refusals: `take me to the robotics lab` -> *Quantum Lab* and `go to admin` -> *MOQ* (GPU run), `go to hr` -> *MOQ*
+(CPU run), plus one `NONE` for `can you take me to the canteen please` (GPU run). The same model scored 7/8 on CPU and
+5/8 on GPU in single runs, so its accuracy is also unstable between runs. `llama3.2:1b` was evaluated with
+`eval/eval_llm.py` only; it is not in the GUI model list (`response_generator.py`).
 
-#### 5.1 Filler Words and Synonyms
+### 5. Robot Navigation Trials
+
+The full pipeline was tested on the TurtleBot 4 with typed commands: intent detection, location extraction and Nav2.
+Each of two routes was run 5 times from the same start location, and the robot was sent back to the start between
+runs (through Nav2, not timed). Three unknown places were also tried; the assistant must refuse them and the robot must
+stay still. The runs were automated with `eval/auto_nav_trials.py`.
+
+**Source:** `eval/results/navigation_trials.csv`
+
+| Route / goal | Trials | Goal reached | Travel time (s, mean ± SD) | Collisions |
+|---|---:|---:|---:|---:|
+| Lawn -> Main Gate (`go to Main Gate`) | 5 | 5/5 | 8.1 ± 0.2 | 0 |
+| Main Gate -> Lawn (`go to Lawn`) | 5 | 5/5 | 12.8 ± 0.6 | 0 |
+| Unknown place (`go to the moon`, `go to mars`, `take me to narnia`) | 3 | Refused 3/3 | n/a | n/a |
+
+**How it was measured**
+
+- **Reached:** Nav2 reported success and the AMCL pose was within 0.35 m of the goal. This is the robot's own
+  localization estimate, not an external measurement.
+- **Travel time:** from sending the goal to arrival. Speech recognition, language understanding and the Nav2 readiness
+  check are not included.
+- **Collisions:** bumper hits counted from `/hazard_detection`. Scrapes and near-misses are not counted.
+
+**Observations**
+
+- All 10 navigation trials succeeded with no collisions, and all 3 unknown places were refused without any motion.
+- The return direction took longer (12.8 s vs 8.1 s) on the same route. The untimed reset legs show the same
+  difference, so it looks systematic and not random. The cause was not investigated.
+- The sample is small: 5 runs per route, two short routes (about 1.3 m), one start pose and typed commands. With
+  10 successes out of 10 the 95 % confidence interval (Clopper-Pearson) for the success rate has a lower bound of about
+  69 %, so the test shows that the pipeline works but does not give a precise reliability figure.
+
+**Reproduce**
+
+```bash
+# robot stack running (scripts/robot_launch.sh), robot standing on the first start location
+python3 eval/auto_nav_trials.py --routes "Lawn>Main Gate" "Main Gate>Lawn" --runs 5 --init-pose 1.0 0.0 1.57
+python3 eval/summarize.py nav eval/results/navigation_trials.csv
+```
+
+`--init-pose X Y YAW` publishes the initial pose for you; the yaw is in **radians** here (`robot_launch.sh` takes degrees).
+Use `--dry-run` to check how each command is understood without moving the robot. See `eval/README.md` for all options.
+
+### 6. Observed Failure Cases
+
+#### 6.1 Filler Words and Synonyms
 
 The rule-based system failed to resolve all 6 filler-word commands and all 7 synonym commands.
 
@@ -443,7 +497,7 @@ Examples include:
 
 The LLM fallback resolved 8 of these 13 cases.
 
-#### 5.2 Commands Not Passed to the LLM
+#### 6.2 Commands Not Passed to the LLM
 
 Six cases failed even with the LLM available because the rule-based guard did not pass them to the fallback:
 
@@ -456,7 +510,7 @@ Six cases failed even with the LLM available because the rule-based guard did no
 
 These failures indicate that command normalization (polite prefixes such as `could you`, synonyms inside a sentence, coordinate formats) and the fallback guard need to be improved so that these commands are resolved.
 
-#### 5.3 Multi-Stop Voice Commands
+#### 6.3 Multi-Stop Voice Commands
 
 Multi-stop commands achieved 6/6 successful resolutions using text input. For spoken commands, the success rate was:
 - `base`: 1/6
@@ -465,25 +519,26 @@ Multi-stop commands achieved 6/6 successful resolutions using text input. For sp
 
 Most spoken failures came from the connector word or the second location being mis-transcribed: for example `and then canteen` became `and then continue`, `then canteen` became `then then continue`, and with `base` `then go to warehouse` was sometimes transcribed as `and go to warehouse`.
 
-#### 5.4 Short or Low-Energy Audio Clips
+#### 6.4 Short or Low-Energy Audio Clips
 
 Speech recognition occasionally generated hallucinated text, such as `Thank you`, from short or low-energy recordings. This motivated the silence and hallucination checks implemented in `voice_input.py`.
 
-### 6. Key Takeaways
+### 7. Key Takeaways
 
 - **Language understanding:** Adding the LLM fallback increased text understanding from 74% (39/53) to 89% (47/53).
 - **Fallback latency:** The LLM adds approximately 0.4 seconds per fallback call on CPU (about 0.1 seconds on GPU) in the full language-understanding test.
 - **Invalid locations:** The system correctly rejected all 7 invalid-location commands in the text test.
 - **Speech recognition:** Whisper `large-v3` on GPU achieved the lowest WER (10.2%) and an average transcription time of approximately 0.17 seconds.
-- **LLM selection:** Both `llama3.2:3b` and `llama3.1:8b` resolved all 8 fallback commands. The larger model showed no accuracy improvement in this test.
-- **Resource efficiency:** `llama3.2:3b` requires less memory and provides faster CPU chat responses, making it the recommended default.
-- **Limitations:** The sample sizes are small (6–13 commands per category), so differences of one command should not be overinterpreted.
+- **LLM selection:** `llama3.2:3b` and `llama3.1:8b` both resolved all 8 fallback commands, so the larger model showed no accuracy improvement. The smaller `llama3.2:1b` was the fastest (0.25 s GPU chat reply) but resolved only 7/8 (CPU) and 5/8 (GPU), mostly by naming the wrong place.
+- **Resource efficiency:** `llama3.2:3b` requires less memory and provides faster CPU chat responses than the 8B model while keeping full accuracy, making it the recommended default.
+- **Robot navigation:** On the real robot, 10 of 10 navigation trials reached the goal with no bumper collisions, and all 3 unknown places were refused without moving.
+- **Limitations:** The sample sizes are small (6–13 commands per category in the text tests, 5 runs per route on the robot), so differences of one command should not be overinterpreted.
 
-Overall, the results indicate that the main limitation is the rule-based language-understanding and fallback-guard logic, rather than speech recognition alone. Improving command normalization, synonym handling, coordinate parsing, and multi-stop connector processing should further improve system performance.
+Overall, the results indicate that the main limitation is the rule-based language-understanding and fallback-guard logic, rather than speech recognition alone. Once a command is resolved, the navigation side worked reliably in the trials. Improving command normalization, synonym handling, coordinate parsing, and multi-stop connector processing should further improve system performance.
 
 ## Demo From One Location to Another Location
 **GUI + RViz Visualization**
-<p align="center"> <img src="Results/From_1Loc_to_2.gif" alt="From_1Loc_to_2" width="800"></p>
+<p align="center"> <img src="Results/rviz.png" alt="rviz" width="800"></p>
 
 
 **Real Time Navigation**
@@ -494,14 +549,15 @@ Overall, the results indicate that the main limitation is the rule-based languag
 
 **GUI + RViz Visualization**
 
-<p align="center"><img src="Results/From_2Loc_to_1.gif" alt="From_2Loc_to_1 demo" width="800"> 
-</p>
+<!-- <p align="center"><img src="Results/From_2Loc_to_1.gif" alt="From_2Loc_to_1 demo" width="800"> 
+</p> -->
 
 ## Known limitations
 - Locations and the 8 x 3 m map bounds are specific to the original lab setup (`src/locations.yaml`, `MAP_BOUNDS` in `location_extractor.py`).
 - Code was developed against specific audio hardware (USB mic at 48 kHz, PipeWire Bluetooth sink).
 - Single-robot only.
-- The robot-side navigation success rate was not measured quantitatively; the demo recordings above show real runs. 
+- The robot navigation trials are small (2 routes x 5 runs, typed commands, one environment); "reached" is judged from the AMCL pose and collisions are bumper hits only. Spoken commands were not tested on the robot.
+- In our setup the initial pose published by `robot_launch.sh` was not always picked up by AMCL. If the robot is not localized, set the pose with **2D Pose Estimate** in RViz (or use `--init-pose` for the evaluation script).
 
 
 ## License

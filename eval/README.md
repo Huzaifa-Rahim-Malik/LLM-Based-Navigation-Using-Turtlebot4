@@ -10,7 +10,7 @@ to record the sample set).
 | 2 | `record_samples.py` | microphone | the spoken test set |
 | 3 | `eval_stt.py` | Whisper models | Table 2 (word error rate, command understood, time) |
 | 4 | `eval_llm.py` | Ollama + models pulled | Table 4 (LLM comparison) |
-| 5 | robot trials + `summarize.py nav` | the robot | Table 1 "Reached goal" |
+| 5 | robot trials + `summarize.py nav` | the robot | Robot trials table (goal reached, travel time, collisions) |
 | 6 | `summarize.py latency` | your measurements | Table 3 (end-to-end latency) |
 
 Run everything from the repository root. All raw results are saved as CSV in `eval/results/`; commit them,
@@ -57,27 +57,46 @@ The WAV files are your own voice; add `eval/stt_samples/*.wav` to `.gitignore` i
 
 ## 4. LLM comparison
 
+The paper compares three Llama sizes: **small** `llama3.2:1b`, **medium** `llama3.2:3b` (default) and
+**large** `llama3.1:8b`.
+
 ```bash
-ollama pull llama3.2:3b llama3.1:8b qwen2.5:7b mistral:7b
-python3 eval/eval_llm.py                                   # every installed model, CPU and GPU
-python3 eval/eval_llm.py --models llama3.2:3b llama3.1:8b --device gpu
+ollama pull llama3.2:1b llama3.2:3b llama3.1:8b
+python3 eval/eval_llm.py --models llama3.2:1b llama3.2:3b llama3.1:8b      # CPU and GPU, all three sizes
+python3 eval/eval_llm.py --models llama3.2:1b --append                     # add only the small model to the existing results
 ```
+
+`--append` merges the new rows into `eval/results/llm_comparison.csv` (rows for the same model and device are
+replaced) and sorts small to large. **Without `--append` the file is overwritten**, so a run of one model alone would
+delete the other rows. Other models (`qwen2.5:7b`, `mistral:7b`) can be added the same way.
 
 Per model: fallback accuracy on the commands that really reach the LLM, time per call, chat reply time and
 tokens/s (from Ollama's own counters), plus `ollama ps` size and GPU memory.
 
-## 5. Robot trials ("Reached goal")
+## 5. Robot trials (goal reached, travel time, collisions)
 
-1. Terminal 1: `./scripts/robot_launch.sh <x> <y> <yaw>`; terminal 2: `cd src && python3 gui.py` (or `main.py --text-only`).
-2. Use text mode so speech errors do not mix with navigation errors.
-3. Take the navigate commands whose expected target is not NONE, plus the invalid ones. Repeat each at least 3 times,
-   always starting from the same marked spot (reset the pose with the same `robot_launch.sh` arguments).
-4. Copy `navigation_trials_template.csv` to `eval/results/navigation_trials.csv` and add one row per trial:
-   `understood` = the assistant picked the intended target; `reached` = log says arrived **and** the robot is
-   physically on the goal (mark it with tape); `start_to_goal_s` from the log timestamps or a stopwatch;
-   `failure_note` = why it failed. For invalid places use `expected_target` NONE and `understood` 1 only if it
-   refused to move.
-5. `python3 eval/summarize.py nav eval/results/navigation_trials.csv`
+Reviewers usually ask for a small table of real robot runs. A minimal plan that takes 20-30 minutes:
+**2 routes x 5 runs** (for example Location 1 -> Location 2 and the way back, the same routes as the demo videos),
+plus 3 commands naming places that do not exist.
+
+1. Terminal 1: `./scripts/robot_launch.sh <x> <y> <yaw>`; terminal 2: `cd src && python3 gui.py` (type the command, so
+   speech errors do not mix with navigation errors).
+2. Before every run put the robot on the same marked start spot and set the pose again with the same
+   `robot_launch.sh` arguments.
+3. Copy `navigation_trials_template.csv` to `eval/results/navigation_trials.csv` and add **one row per trial**
+   (the template explains every column):
+   - `understood`: the assistant chose the intended target (for `NONE`: it refused to move);
+   - `reached`: the log says arrived **and** the robot is physically on the goal (mark the goal with tape);
+   - `start_to_goal_s`: seconds from "Navigating" to the robot stopping, from the log timestamps or a stopwatch;
+   - `collisions`: how many times the robot touched an obstacle or wall. To count objectively, run
+     `ros2 topic echo /hazard_detection` in a third terminal (bump events of the TurtleBot 4 base; the topic may
+     carry your robot's namespace) or note every contact you see;
+   - `failure_note`: why it failed, when `reached` is 0.
+4. `python3 eval/summarize.py nav eval/results/navigation_trials.csv`
+5. Paste the printed table into the main README under a new `### Robot trials` heading in **Results**, and delete the
+   "not measured quantitatively" line from *Known limitations*.
+
+Report the number of trials honestly (10 runs is a small sample) and keep every failed run in the CSV.
 
 ## 6. End-to-end latency
 

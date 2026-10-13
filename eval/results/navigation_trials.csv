@@ -1,0 +1,25 @@
+# One row per physical robot trial (use the same start spot for every trial of a route).
+#   type            named, coordinates, multi_stop or invalid
+#   start           where the robot starts, e.g. Location 1 (leave empty if you only use one start spot)
+#   expected_target the goal you intend, as written in src/locations.yaml; for a command that must be refused use NONE
+#   understood      1 if the assistant picked the intended target (for NONE: 1 if it refused to move), else 0
+#   reached         1 if the log says arrived AND the robot is physically at the goal, else 0
+#   start_to_goal_s seconds from the goal being accepted ("Navigating") to the robot stopping at the goal
+#   collisions      number of times the robot touched an obstacle or wall during the trial (0 if none)
+#   failure_note    short reason when reached=0 (planner failed, obstacle, timeout, ...)
+# Delete nothing: lines starting with # are ignored by summarize.py. Copy this file to
+# eval/results/navigation_trials.csv and add your rows under the header.
+type,command,start,expected_target,understood,reached,start_to_goal_s,collisions,failure_note
+named,go to Main Gate,Lawn,Main Gate,1,1,8.3,0,
+named,go to Main Gate,Lawn,Main Gate,1,1,7.9,0,
+named,go to Main Gate,Lawn,Main Gate,1,1,8.4,0,
+named,go to Main Gate,Lawn,Main Gate,1,1,8.0,0,
+named,go to Main Gate,Lawn,Main Gate,1,1,7.9,0,
+named,go to Lawn,Main Gate,Lawn,1,1,12.1,0,
+named,go to Lawn,Main Gate,Lawn,1,1,12.3,0,
+named,go to Lawn,Main Gate,Lawn,1,1,12.7,0,
+named,go to Lawn,Main Gate,Lawn,1,1,13.6,0,
+named,go to Lawn,Main Gate,Lawn,1,1,13.2,0,
+invalid,go to the moon,,NONE,1,,,,
+invalid,go to mars,,NONE,1,,,,
+invalid,take me to narnia,,NONE,1,,,,

@@ -14,6 +14,7 @@ Needs `ollama serve` running and the models pulled (ollama pull llama3.2:3b ...)
 
     python3 eval/eval_llm.py                                  # all installed catalog models, CPU and GPU
     python3 eval/eval_llm.py --models llama3.2:3b llama3.1:8b --device gpu
+    python3 eval/eval_llm.py --models llama3.2:1b --append    # add the small model to the existing results
 """
 import argparse
 import os
@@ -89,6 +90,9 @@ def main():
     ap.add_argument("--device", choices=["cpu", "gpu", "both"], default="both")
     ap.add_argument("--runs", type=int, default=1, help="repeat the chat prompts this many times")
     ap.add_argument("--cases", default=os.path.join(HERE, "nlu_test_cases.csv"))
+    ap.add_argument("--append", action="store_true",
+                    help="merge with the existing llm_comparison.csv (rows for the same model + device are "
+                         "replaced) instead of overwriting it - use this to add one more model")
     args = ap.parse_args()
 
     from response_generator import InferenceConfig
@@ -147,6 +151,16 @@ def main():
             except Exception:
                 pass
 
+    out_path = os.path.join(RESULTS, "llm_comparison.csv")
+    if args.append and os.path.exists(out_path):
+        fresh = {(r["model"], r["device"]) for r in results}
+        results = [r for r in read_csv(out_path) if (r["model"], r["device"]) not in fresh] + results
+
+    def order(r):                                   # small -> large model, CPU before GPU
+        m = re.search(r":(\d+(?:\.\d+)?)b", r["model"])
+        return (float(m.group(1)) if m else 99.0, r["model"], r["device"] != "CPU")
+    results.sort(key=order)
+
     print("\n### LLM comparison\n")
     print(md_table(
         ["Model", "Device", "Fallback accuracy", "Fallback time (s)", "Chat reply time (s)",
@@ -154,7 +168,7 @@ def main():
         [[f"`{r['model']}`", r["device"], f"{r['fallback_correct']} / {r['fallback_total']}",
           r["fallback_mean_s"], f"{r['chat_mean_s']} ± {r['chat_sd_s']}" if r["chat_sd_s"] != "" else r["chat_mean_s"],
           r["tokens_per_s"], r["ollama_ps"], r["vram_used_mb"] or "n/a"] for r in results]))
-    write_csv(os.path.join(RESULTS, "llm_comparison.csv"), results,
+    write_csv(out_path, results,
               ["model", "device", "fallback_correct", "fallback_total", "fallback_mean_s",
                "chat_mean_s", "chat_sd_s", "tokens_per_s", "ollama_ps", "vram_used_mb"])
 

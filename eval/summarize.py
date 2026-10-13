@@ -2,7 +2,8 @@
 """
 Turn the hand-recorded robot trials into the README tables.
 
-    python3 eval/summarize.py nav     eval/results/navigation_trials.csv
+    python3 eval/summarize.py nav     eval/results/navigation_trials.csv          # one row per route / goal
+    python3 eval/summarize.py nav     eval/results/navigation_trials.csv --by type
     python3 eval/summarize.py latency eval/results/latency_trials.csv
 """
 import sys
@@ -11,26 +12,51 @@ from collections import defaultdict
 from common import md_table, mean_sd, read_csv
 
 
-def nav(path):
-    rows = read_csv(path)
-    by = defaultdict(list)
+def nav(path, by="route"):
+    rows = [r for r in read_csv(path) if r.get("reached", "") != "" or r.get("understood", "") != ""]
+    if not rows:
+        raise SystemExit("no filled-in trials found in " + path)
+
+    def label(r):
+        if r["expected_target"] == "NONE":
+            return "unknown place (must be refused)"
+        if by == "type":
+            return r["type"]
+        start = (r.get("start") or "").strip()
+        return f"{start} -> {r['expected_target']}" if start else r["expected_target"]
+
+    groups = defaultdict(list)
     for r in rows:
-        by[r["type"]].append(r)
-    table, tu, tr, tn = [], 0, 0, 0
-    for t, rs in by.items():
-        u = sum(int(r["understood"]) for r in rs)
-        reached = [r for r in rs if r["expected_target"] != "NONE"]
-        g = sum(int(r["reached"]) for r in reached)
-        times = [float(r["start_to_goal_s"]) for r in reached if r["reached"] == "1" and r["start_to_goal_s"]]
-        notes = "; ".join(sorted({r["failure_note"] for r in rs if r["failure_note"]}))
-        table.append([t, f"{u} / {len(rs)}", f"{g} / {len(reached)}" if reached else "n/a",
-                      mean_sd(times, 1) if times else "n/a", notes])
-        tu += u; tr += g; tn += len(rs)
-    print(f"\n### Navigation success (N = {tn} trials)\n")
-    print(md_table(["Command type", "Understood correctly", "Reached goal", "Travel time (s)", "Notes"], table))
-    reached_total = sum(1 for r in rows if r["expected_target"] != "NONE")
-    print(f"\nOverall: understood {tu}/{tn}, reached goal {tr}/{reached_total} "
-          f"({100 * tr / max(reached_total, 1):.0f} %).")
+        groups[label(r)].append(r)
+
+    def ints(rs, key):
+        return [int(r[key]) for r in rs if r.get(key, "") != ""]
+
+    table = []
+    for name, rs in groups.items():
+        invalid = rs[0]["expected_target"] == "NONE"
+        if invalid:
+            refused = sum(ints(rs, "understood"))
+            table.append([name, len(rs), f"refused {refused} / {len(rs)}", "n/a", "n/a", ""])
+            continue
+        reached = sum(ints(rs, "reached"))
+        times = [float(r["start_to_goal_s"]) for r in rs if r["reached"] == "1" and r.get("start_to_goal_s")]
+        col = ints(rs, "collisions")
+        notes = "; ".join(sorted({r["failure_note"] for r in rs if r.get("failure_note")}))
+        table.append([name, len(rs), f"{reached} / {len(rs)}",
+                      mean_sd(times, 1) if times else "n/a",
+                      sum(col) if col else "n/a", notes])
+    print(f"\n### Robot trials (N = {len(rows)})\n")
+    print(md_table(["Route / goal", "Trials", "Goal reached", "Travel time (s)", "Collisions", "Notes"], table))
+
+    real = [r for r in rows if r["expected_target"] != "NONE"]
+    if real:
+        reached = sum(ints(real, "reached"))
+        col = ints(real, "collisions")
+        times = [float(r["start_to_goal_s"]) for r in real if r["reached"] == "1" and r.get("start_to_goal_s")]
+        print(f"\nOverall: goal reached {reached}/{len(real)} ({100 * reached / len(real):.0f} %)"
+              + (f", mean travel time {mean_sd(times, 1)} s" if times else "")
+              + (f", {sum(col)} collision(s) in {len(col)} trials" if col else ", collisions not recorded") + ".")
 
 
 def latency(path):
@@ -50,6 +76,12 @@ def latency(path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] not in ("nav", "latency"):
+    args = sys.argv[1:]
+    by = "route"
+    if "--by" in args:
+        k = args.index("--by")
+        by = args[k + 1]
+        del args[k:k + 2]
+    if len(args) != 2 or args[0] not in ("nav", "latency") or by not in ("route", "type"):
         raise SystemExit(__doc__)
-    {"nav": nav, "latency": latency}[sys.argv[1]](sys.argv[2])
+    nav(args[1], by) if args[0] == "nav" else latency(args[1])

@@ -197,8 +197,13 @@ def main():
     if rows_hybrid:
         llm = [float(r["llm_s"]) for r in rows_hybrid if r["llm_s"] != ""]
         if llm:
-            print(f"LLM fallback time ({args.model}, {'GPU' if args.gpu else 'CPU'}): "
-                  f"mean {statistics.mean(llm):.2f} s over {len(llm)} commands")
+            dev = "GPU" if args.gpu else "CPU"
+            print(f"LLM fallback ({args.model}, {dev}), {len(llm)} calls:")
+            print(f"  first call {llm[0]:.2f} s  (includes loading the model if it was not already in memory)")
+            if len(llm) > 1:
+                warm = llm[1:]
+                print(f"  following {len(warm)} calls: median {statistics.median(warm):.2f} s "
+                      f"(min {min(warm):.2f}, max {max(warm):.2f})  <- report this as the normal fallback time")
 
     final = rows_hybrid or rows_rules
     fails = [r for r in final if not int(r["understood"])]
