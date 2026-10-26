@@ -6,7 +6,7 @@ a local LLM handles conversation and ambiguous requests, and Nav2 drives the rob
 
 Everything runs **locally** – speech recognition, LLM inference and text-to-speech need no cloud services.
 
-<p align="center"> <img src="Results/Image.png" alt="Image" width="800"><br><br> <img src="Results/Demo.gif" alt="demo" width="800"> </p>
+<p align="center"> <img src="Results/Image.png" alt="Image" width="800"><br><br> <img src="Results/Demo_Video.gif" alt="Demo_Video" width="800"> </p>
 
 ## Features
 
