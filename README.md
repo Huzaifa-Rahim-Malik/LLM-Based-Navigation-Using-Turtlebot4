@@ -6,7 +6,7 @@ a local LLM handles conversation and ambiguous requests, and Nav2 drives the rob
 
 Everything runs **locally** – speech recognition, LLM inference and text-to-speech need no cloud services.
 
-<p align="center"> <img src="Results/GUI.png" alt="Monitoring GUI" width="800"><br><br> <img src="Results/Demo.gif" alt="Voice command to robot arrival demo" width="800"> </p>
+<p align="center"> <img src="Results/Image.png" alt="Image" width="800"><br><br> <img src="Results/Demo.gif" alt="demo" width="800"> </p>
 
 ## Features
 
@@ -538,19 +538,15 @@ Overall, the results indicate that the main limitation is the rule-based languag
 
 ## Demo From One Location to Another Location
 **GUI + RViz Visualization**
-<p align="center"> <img src="Results/rviz.png" alt="rviz" width="800"></p>
 
+<p align="center"><img src="Results/GUI.gif" alt="GUI" width="800"> 
+</p>
 
 **Real Time Navigation**
 
-<p align="center"><img src="Results/From_1Loc_to_2_arena.gif" alt="From_1Loc_to_2_arena" width="800"> </p>
+<p align="center"><img src="Results/Camera.gif" alt="Camera" width="800"> </p>
 
-<br>
 
-**GUI + RViz Visualization**
-
-<!-- <p align="center"><img src="Results/From_2Loc_to_1.gif" alt="From_2Loc_to_1 demo" width="800"> 
-</p> -->
 
 ## Known limitations
 - Locations and the 8 x 3 m map bounds are specific to the original lab setup (`src/locations.yaml`, `MAP_BOUNDS` in `location_extractor.py`).
