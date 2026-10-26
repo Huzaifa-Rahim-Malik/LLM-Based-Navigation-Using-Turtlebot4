@@ -29,39 +29,7 @@ The system starts in **two steps**. First the robot stack is brought up with `sc
 (together with the robot's starting position). Then the assistant GUI (`src/gui.py`)
 is started and talks to that running stack.
 
-```mermaid
-flowchart LR
-    subgraph S1["Step 1 — scripts/robot_launch.sh  x y yaw  [--mode slam or localization]"]
-      L1["Source ROS 2 Jazzy<br/>ROS_DOMAIN_ID=23"] --> L2["SLAM Toolbox<br/>or localization on saved map"]
-      L2 --> L3["Publish /initialpose<br/>x, y, yaw"]
-      L3 --> L4["Nav2 stack"]
-      L4 --> L5["RViz"]
-    end
-```
-
-```mermaid
-flowchart LR
-    subgraph S2["Step 2 — src/gui.py"]
-      subgraph Input["Input"]
-        subgraph IN1["Input type I — Voice"]
-          MIC[Microphone] --> STT[Whisper STT]
-        end
-        subgraph IN2["Input type II — Text"]
-          TXT["GUI chat"]
-        end
-      end
-      STT --> INT["Intent detector<br/>rule-based"]
-      TXT --> INT
-      INT -- chat --> LLM["Ollama LLM<br/>response generator"]
-      INT -- navigate --> LOC["Location extractor<br/>rules + synonyms + LLM fallback"]
-      LM[("locations.yaml")] --> LOC
-      LOC -- "target x, y, theta" --> NAV["Robot navigator<br/>Nav2 BasicNavigator"]
-      NAV <--> ROBOT["TurtleBot 4<br/>Nav2 + AMCL + SLAM map"]
-      LLM --> TTS["Piper TTS -> Bluetooth speaker"]
-      NAV --> TTS
-      ROBOT -. "/odom /scan /imu /battery_state" .-> GUI["Monitoring GUI"]
-    end
-```
+<p align="center"> <img src="Results/Flow_Diagram.png" alt="Flow_Diagram" width="800"> </p>
 
 ### How it works
 
