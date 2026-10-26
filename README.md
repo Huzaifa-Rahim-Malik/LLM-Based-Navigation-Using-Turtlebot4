@@ -30,19 +30,19 @@ The system starts in **two steps**. First the robot stack is brought up with `sc
 is started and talks to that running stack.
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph S1["Step 1 — scripts/robot_launch.sh  x y yaw  [--mode slam or localization]"]
-      direction LR
       L1["Source ROS 2 Jazzy<br/>ROS_DOMAIN_ID=23"] --> L2["SLAM Toolbox<br/>or localization on saved map"]
       L2 --> L3["Publish /initialpose<br/>x, y, yaw"]
       L3 --> L4["Nav2 stack"]
       L4 --> L5["RViz"]
     end
+```
 
+```mermaid
+flowchart LR
     subgraph S2["Step 2 — src/gui.py"]
-      direction LR
       subgraph Input["Input"]
-        direction TB
         subgraph IN1["Input type I — Voice"]
           MIC[Microphone] --> STT[Whisper STT]
         end
@@ -61,8 +61,6 @@ flowchart TB
       NAV --> TTS
       ROBOT -. "/odom /scan /imu /battery_state" .-> GUI["Monitoring GUI"]
     end
-
-    S1 ==> S2
 ```
 
 ### How it works
