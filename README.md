@@ -242,18 +242,6 @@ flowchart LR
 ## Repository layout
 
 ```
-src/                     Application (run from this directory)
-  gui.py                   GUI: chat + voice + locations + controls + sensor plots (main entry point)
-  main.py                  Optional terminal entry point (see `python3 main.py --help`)
-  chat_interface.py        Chat loop, threading, multi-stop queue
-  intent_detector.py       navigate-vs-chat classification
-  location_extractor.py    Named / coordinate / LLM-fallback target extraction
-  location_manager.py      locations.yaml loader
-  response_generator.py    Ollama inference + shared CPU/GPU/model config
-  robot_navigator.py       Nav2 BasicNavigator wrapper + AMCL pose tracking
-  voice_input.py           Whisper STT
-  voice_output.py          Piper TTS -> PipeWire/Bluetooth
-  locations.yaml           Named goals in map coordinates
 maps/                    Saved occupancy maps (.pgm + .yaml): robotic_arena, map_1, indoor_map, gallery_map
 scripts/
   robot_launch.sh          Step 1: SLAM/localization + initial pose + Nav2 + RViz
